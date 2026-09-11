@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>St. Louis Tornado — Building Damage Entry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --bg: #f0efeb;
+  --surface: #fafaf8;
+  --surface-raised: #ffffff;
+  --surface-alt: #e8e7e3;
+  --text: #2a2826;
+  --text-muted: #76726b;
+  --accent: #2c6585;
+  --accent-hover: #1f5270;
+  --accent-soft: #deedf5;
+  --success: #3a7a4f;
+  --success-soft: #ddf0e3;
+  --warning: #b07d2a;
+  --warning-soft: #f5ecd6;
+  --danger: #a83a2e;
+  --border: #d5d2cb;
+  --input-bg: #ffffff;
+  --input-border: #c5c1b9;
+  --font-display: 'Source Serif 4', Georgia, serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --radius: 5px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a191e;
+    --surface: #232228;
+    --surface-raised: #2b2a31;
+    --surface-alt: #33323a;
+    --text: #dddbd6;
+    --text-muted: #8e8a83;
+    --accent: #6aaecc;
+    --accent-hover: #82bfd8;
+    --accent-soft: #1b3040;
+    --success: #5eaa70;
+    --success-soft: #1c3126;
+    --warning: #cfa04c;
+    --warning-soft: #372c16;
+    --danger: #cf6055;
+    --border: #3e3d45;
+    --input-bg: #2b2a31;
+    --input-border: #4c4b53;
+  }
+}
+*,*::before,*::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+button { cursor: pointer; }
+
+/* ── Layout ─────────────────────────────── */
+#app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── Sidebar ────────────────────────────── */
+#sidebar {
+  width: 240px; min-width: 240px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.side-hdr {
+  padding: 18px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.side-hdr h1 {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 600; margin: 0 0 1px;
+}
+.side-hdr small { font-size: 11.5px; color: var(--text-muted); letter-spacing: .02em; }
+.user-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.user-row input {
+  flex: 1; font: inherit; font-size: 12px; padding: 3px 7px;
+  border: 1px solid var(--input-border); border-radius: var(--radius);
+  background: var(--input-bg); color: var(--text);
+}
+.bld-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+.bld-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.bld-item:hover { background: var(--surface-alt); }
+.bld-item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+.bld-item .n { font-weight: 600; font-size: 11px; color: var(--accent); min-width: 22px; font-variant-numeric: tabular-nums; }
+.bld-item .a { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bld-item .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.bld-item .del-x {
+  display: none; font-size: 14px; color: var(--text-muted); background: none;
+  border: none; padding: 0 2px; line-height: 1; cursor: pointer; flex-shrink: 0;
+}
+.bld-item:hover .del-x { display: block; }
+.bld-item:hover .dot { display: none; }
+.bld-item .dot.lo { background: var(--border); }
+.bld-item .dot.mid { background: var(--warning); }
+.bld-item .dot.hi { background: var(--success); }
+.side-act {
+  padding: 10px 14px; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.btn {
+  font: inherit; font-size: 12.5px; font-weight: 500;
+  padding: 7px 12px; border-radius: var(--radius); border: none; text-align: center;
+}
+.btn-p { background: var(--accent); color: #fff; }
+.btn-p:hover { background: var(--accent-hover); }
+.btn-s { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+.btn-s:hover { background: var(--border); }
+.btn-d { background: none; color: var(--danger); border: 1px solid var(--danger); font-size: 11px; padding: 4px 8px; }
+.btn-d:hover { background: var(--danger); color: #fff; }
+
+/* ── Main ───────────────────────────────── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#empty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px; color: var(--text-muted);
+}
+#empty b { font-size: 15px; }
+
+/* ── Form view ──────────────────────────── */
+#fview { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+#fview.on { display: flex; }
+
+/* Tab bar */
+#tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  background: var(--surface); overflow-x: auto; flex-shrink: 0;
+  scrollbar-width: none;
+}
+#tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 9px 13px; font-size: 11.5px; font-weight: 500;
+  color: var(--text-muted); cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.tab:hover { color: var(--text); }
+.tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+.pip { width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
+.pip.mid { background: var(--warning); }
+.pip.hi { background: var(--success); }
+
+/* Content split: form + map panel */
+#content { display: flex; flex: 1; overflow: hidden; }
+
+/* Form scroll */
+#fscroll {
+  flex: 1; overflow-y: auto; padding: 22px 24px;
+  min-width: 0;
+}
+.sec-title {
+  font-family: var(--font-display); font-size: 19px;
+  font-weight: 600; margin: 0 0 3px; text-wrap: balance;
+}
+.sec-desc { font-size: 12px; color: var(--text-muted); margin: 0 0 18px; }
+
+.fgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px 18px; margin-bottom: 16px;
+}
+.fg { display: flex; flex-direction: column; gap: 3px; }
+.fg.fw { grid-column: 1 / -1; }
+.fl {
+  font-size: 11.5px; font-weight: 500; color: var(--text-muted);
+  display: flex; align-items: center; gap: 3px; letter-spacing: .01em;
+}
+.hi {
+  width: 13px; height: 13px; border-radius: 50%; background: var(--surface-alt);
+  border: 1px solid var(--border); font-size: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: help; color: var(--text-muted); position: relative;
+}
+.hi:hover .tt { display: block; }
+.tt {
+  display: none; position: absolute; bottom: calc(100% + 5px); left: 50%;
+  transform: translateX(-50%); background: var(--text); color: var(--bg);
+  font-size: 11px; font-weight: 400; padding: 5px 9px; border-radius: 4px;
+  white-space: normal; width: 220px; z-index: 100; line-height: 1.35;
+}
+input[type=text],input[type=number],select,textarea {
+  font: inherit; font-size: 13px; padding: 6px 9px;
+  border: 1px solid var(--input-border); border-radius: var(--radius);
+  background: var(--input-bg); color: var(--text); width: 100%;
+}
+input:focus,select:focus,textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+textarea { resize: vertical; min-height: 72px; }
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M0 0l5 6 5-6' stroke='%2376726b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center; padding-right: 26px;
+}
+
+/* Radio / rating / unc */
+.rg,.rtg,.ug {
+  display: flex; gap: 0; border: 1px solid var(--input-border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.rg label, .rtg button, .ug button {
+  flex: 1; text-align: center; padding: 5px 6px; font: inherit;
+  font-size: 11.5px; font-weight: 500; background: var(--input-bg);
+  color: var(--text-muted); border: none;
+  border-right: 1px solid var(--input-border); cursor: pointer;
+}
+.rg label:last-child,.rtg button:last-child,.ug button:last-child { border-right: none; }
+.rg label.on { background: var(--accent-soft); color: var(--accent); }
+.rtg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+.ug button { width: 30px; flex: none; font-size: 11px; }
+.ug button.on { background: var(--warning-soft); color: var(--warning); font-weight: 600; }
+
+/* Checkbox grid */
+.cbg {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 2px;
+}
+.cbg label {
+  display: flex; align-items: center; gap: 5px; padding: 4px 6px;
+  font-size: 11.5px; cursor: pointer; border-radius: 3px;
+}
+.cbg label:hover { background: var(--surface-alt); }
+.cbg input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); }
+
+.subhdr {
+  font-size: 12.5px; font-weight: 600; margin: 18px 0 6px;
+  padding-bottom: 3px; border-bottom: 1px solid var(--border);
+}
+.subhdr:first-child { margin-top: 0; }
+
+/* Nav */
+.nav {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+
+/* Save bar */
+#sbar {
+  padding: 3px 14px; font-size: 10.5px; color: var(--text-muted);
+  text-align: right; flex-shrink: 0; background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+#sbar.saving { color: var(--warning); }
+#sbar.saved { color: var(--success); }
+
+/* ── Map Panel ──────────────────────────── */
+#mappanel {
+  width: 380px; min-width: 380px; background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.map-hdr {
+  padding: 10px 14px; font-size: 12px; font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted); letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.map-search {
+  display: flex; gap: 0; padding: 8px 10px; border-bottom: 1px solid var(--border);
+}
+.map-search input {
+  flex: 1; font: inherit; font-size: 13px; padding: 7px 10px;
+  border: 1px solid var(--input-border); border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--input-bg); color: var(--text); border-right: none;
+}
+.map-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); z-index: 1; }
+.map-search button {
+  font: inherit; font-size: 12.5px; font-weight: 500; padding: 7px 14px;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 0 var(--radius) var(--radius) 0; cursor: pointer;
+}
+.map-search button:hover { background: var(--accent-hover); }
+#mapframe {
+  flex: 1; min-height: 300px;
+  background: var(--surface-alt);
+  position: relative;
+}
+.map-hint {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); font-size: 11.5px;
+  padding: 5px 12px; border-radius: 4px; z-index: 1000;
+  pointer-events: none; opacity: .9; white-space: nowrap;
+}
+.map-links {
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+}
+.map-links a, .map-links button {
+  font: inherit; font-size: 12px; font-weight: 500; color: var(--accent);
+  text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
+}
+.map-links a:hover, .map-links button:hover { text-decoration: underline; }
+.map-links .sep { color: var(--border); }
+.map-coords {
+  padding: 5px 14px; font-size: 11.5px; color: var(--text-muted);
+  font-variant-numeric: tabular-nums; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.map-coords .coord-val { font-weight: 500; color: var(--text); }
+.map-empty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 20px; text-align: center; color: var(--text-muted); font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* ── Mobile header (hidden on desktop) ── */
+#mob-hdr { display: none; }
+
+/* ── Overlay ────────────────────────────── */
+#overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  z-index: 90;
+}
+#overlay.on { display: block; }
+
+/* ── Map toggle (mobile) ────────────────── */
+#map-toggle { display: none; }
+
+@media (max-width: 900px) {
+  #mappanel { width: 320px; min-width: 320px; }
+}
+
+@media (max-width: 768px) {
+  /* Mobile header */
+  #mob-hdr {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: var(--surface);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  #mob-hdr button {
+    font: inherit; background: none; border: none; padding: 4px;
+    color: var(--text); font-size: 20px; line-height: 1;
+  }
+  #mob-hdr .mob-title {
+    flex: 1; font-family: var(--font-display);
+    font-size: 15px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #mob-hdr .mob-sub { font-size: 11px; color: var(--text-muted); }
+
+  /* Sidebar becomes slide-out drawer */
+  #sidebar {
+    position: fixed; left: -280px; top: 0; bottom: 0;
+    width: 280px; min-width: 280px; z-index: 100;
+    transition: left .25s ease;
+    box-shadow: none;
+  }
+  #sidebar.open { left: 0; box-shadow: 4px 0 20px rgba(0,0,0,.15); }
+
+  /* Main takes full width */
+  #main { width: 100%; }
+
+  /* Map panel hidden by default, collapsible at top */
+  #mappanel {
+    position: fixed; top: 0; right: -100%; width: 100%; height: 100%;
+    min-width: 0; z-index: 100; transition: right .25s ease;
+  }
+  #mappanel.open { right: 0; }
+  #mappanel .map-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* Map toggle button */
+  #map-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    font: inherit; font-size: 11px; font-weight: 500;
+    padding: 5px 10px; border-radius: var(--radius);
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid var(--accent); cursor: pointer;
+  }
+
+  /* Form adjustments */
+  #fscroll { padding: 16px; }
+  .fgrid { grid-template-columns: 1fr; gap: 12px; }
+  .sec-title { font-size: 17px; }
+
+  /* Bigger touch targets */
+  .rg label, .rtg button { padding: 8px 6px; font-size: 12.5px; }
+  .ug button { width: 36px; padding: 8px 0; }
+  input[type=text],input[type=number],select,textarea { font-size: 16px; padding: 10px 12px; }
+  .tab { padding: 10px 12px; font-size: 12px; }
+  .btn { padding: 10px 14px; font-size: 13.5px; }
+  .cbg { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .cbg label { padding: 8px 6px; font-size: 13px; }
+  .cbg input[type=checkbox] { width: 18px; height: 18px; }
+
+  /* Nav buttons stack better */
+  .nav { flex-wrap: wrap; gap: 8px; }
+  .nav .btn { flex: 1; min-width: 100px; }
+
+  /* Empty state */
+  #empty { padding: 20px; text-align: center; }
+}
+
+@media (max-width: 400px) {
+  #fscroll { padding: 12px; }
+  .tab { padding: 9px 8px; font-size: 11px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="overlay" onclick="closeSidebar()"></div>
+  <aside id="sidebar">
+    <div class="side-hdr">
+      <h1>Tornado Damage DB</h1>
+      <small>St. Louis 2024</small>
+    </div>
+    <div class="user-row">
+      <span style="font-weight:500">Name</span>
+      <input type="text" id="uname" placeholder="Your name">
+    </div>
+    <div class="bld-list" id="blist"></div>
+    <div class="side-act">
+      <button class="btn btn-p" onclick="addBuilding()">+ New Building</button>
+      <button class="btn btn-s" onclick="exportCSV()">Export CSV</button>
+    </div>
+  </aside>
+  <main id="main">
+    <div id="mob-hdr">
+      <button onclick="openSidebar()" aria-label="Menu">&#9776;</button>
+      <div>
+        <div class="mob-title" id="mob-title">Tornado Damage DB</div>
+        <div class="mob-sub">St. Louis 2024</div>
+      </div>
+      <button id="map-toggle" onclick="toggleMap()">Map</button>
+    </div>
+    <div id="empty">
+      <b>Select or add a building</b>
+      <span>Each building gets ~270 attributes across 15 sections</span>
+    </div>
+    <div id="fview">
+      <nav id="tabs"></nav>
+      <div id="content">
+        <div id="fscroll"></div>
+        <div id="mappanel">
+          <div class="map-hdr"><span>Click map to select building</span><button onclick="toggleMap()" style="display:none;font:inherit;background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0" id="map-close">&times;</button></div>
+          <div class="map-search">
+            <input type="text" id="addr-search" placeholder="Search address..." onkeydown="if(event.key==='Enter')searchAddr()">
+            <button onclick="searchAddr()">Go</button>
+          </div>
+          <div id="mapframe"></div>
+          <div id="maplinks" class="map-links"></div>
+          <div id="mapcoords" class="map-coords" hidden></div>
+        </div>
+      </div>
+      <div id="sbar"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── SCHEMA ──────────────────────────────────────────────────────────
+const S = {
+  defaults: { tornado_name:"May 16, 2025 Tornado Outbreak", tornado_year:"2025", town:"St. Louis", tornado_EF:"", tornado_start_lat:"38.644", tornado_end_lat:"38.7971", tornado_start_long:"-90.3468", tornado_end_long:"-89.9733" },
+  sections: [
+    {id:"location",t:"Building Location",d:"Click on the map to set coordinates, or type them in.",f:[
+      {k:"latitude",l:"Latitude",t:"number",h:"Building coordinate"},{k:"longitude",l:"Longitude",t:"number",h:"Building coordinate"},
+      {k:"complete_address",l:"Complete Address",t:"text",h:"Address if available; coordinates are more accurate"},
+      {k:"building_name_listing",l:"NRHP Listing Name",t:"text",h:"National Register listing name"},
+      {k:"building_name_current",l:"Current Name",t:"text",h:"Current or alternative name"},
+      {k:"overall_photos_link",l:"Photos Link",t:"text"},
+    ]},
+    {id:"basics",t:"Building Basics",d:"Physical characteristics from visual inspection.",f:[
+      {k:"archetype",l:"Archetype (1–15)",t:"select",o:["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"],h:"Nofal archetype: stories, height, construction, roof"},
+      {k:"located_in_historic_district",l:"Historic District",t:"ynu",o:["yes","no","un"]},
+      {k:"occupany_u",l:"Occupancy",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","museum","storage","utilities","misc","not in use"],h:"Occupancy when the event occurred"},
+      {k:"number_stories",l:"Stories",t:"number"},{k:"year_built_u",l:"Year Built",t:"number",h:"First year if range"},
+      {k:"building_area_m2",l:"Area (m²)",t:"number",h:"Ground footprint"},{k:"building_urban_setting",l:"Urban Setting",t:"select",o:["isolated","row_end","row_middle"]},
+      {k:"building_position_on_street",l:"Street Position",t:"select",o:["recessed","right_on_street"]},
+      {k:"buidling_height_m",l:"Height (m)",t:"number"},{k:"first_floor_elevation_m",l:"1st Floor Elev. (m)",t:"number",h:"Ground to top of first floor"},
+      {k:"front_elevation_orientation",l:"Front Orientation",t:"select",o:["n","s","e","w"]},
+      {k:"wall_length_side",l:"Side Length (m)",t:"number"},{k:"wall_length_front",l:"Front Length (m)",t:"number"},
+      {k:"wall_thickness",l:"Wall Thickness (m)",t:"number"},{k:"understory_pct_of_building_footprint",l:"Understory %",t:"number"},
+      {k:"risk_category_16",l:"Risk Category",t:"select",o:["1","2","3","4"]},
+      {k:"building_low_rise",l:"Low Rise",t:"yn",o:["yes","no"],h:"4 stories or less"},
+      {k:"building_open",l:"Open",t:"text"},{k:"building_enclosed",l:"Enclosed",t:"text"},
+      {k:"building_regular_shape",l:"Regular Shape",t:"text"},{k:"exposure_category",l:"Exposure Cat.",t:"text"},
+      {k:"building_rigid",l:"Rigid",t:"text"},
+    ]},
+    {id:"structural",t:"Structural Systems",d:"Uncertainty: 1 = certain, 2 = probable, 3 = guess.",f:[
+      {k:"roof_shape_u",l:"Roof Shape",t:"select",o:["complex","flat","gable","gable-hip_combo","gambrel","hip","mansard","monoslope","un","ot"],h:"'complex' if multiple types; detail in notes"},
+      {k:"roof_slope_u",l:"Roof Slope (°)",t:"select",o:["0","30","45","60"]},
+      {k:"construction_type_u",l:"Construction Type",t:"select",o:["wooden_light_frame","wood_frame","wooden_ot","steel_light_frame","steel_frame_masonry_shear_wall","steel_frame","concrete_un","rf_masonry","masonry_un","un","ot"]},
+      {k:"construction_type_u_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_wall",l:"MWFRS Wall",t:"select",o:["wall_diaphragm_wood","wall_diaphragm_masonry","wall_diaphragm_steel","wall_diaphragm_concrete","x_bracing_wall","moment_frame","not_applicable","un","ot"],h:"Main wind force resisting system — walls"},
+      {k:"mwfrs_u_wall_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_roof",l:"MWFRS Roof",t:"select",o:["roof_diaphragm_wood","roof_diaphragm_steel","roof_diaphragm_metal","roof_diaphragm_conc","un","not_applicable","ot"]},
+      {k:"mwfrs_u_roof_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_moment_frame",l:"Moment Frame",t:"ynu",o:["yes","no","un"]},
+      {k:"mwfrs_u_unc",l:"MWFRS Overall Cert.",t:"unc"},
+      {k:"masonry_leaves",l:"Masonry Leaves",t:"select",o:["single_leaf","double_leaf","triple_leaf","un","not_applicable"]},
+      {k:"masonry_leaves_unc",l:"Certainty",t:"unc"},
+      {k:"structural_wall_system_u",l:"Struct. Wall System",t:"select",o:["solid_brick_wythe","masonry_block_unreinforced","masonry_block_reinforced","wood_frame","steel_cold_formed","un"]},
+      {k:"foundation_type_u",l:"Foundation",t:"select",o:["slab_on_grade","masonry_stem_wall","concrete_un","masonry_un","stone","un","ot"]},
+      {k:"foundation_type_u_unc",l:"Certainty",t:"unc"},
+      {k:"wall_anchorage_type_u",l:"Wall Anchorage",t:"select",o:["anchor_bolts","metal_straps","concrete_nails","not_applicable","un","ot"]},
+      {k:"wall_anchorage_type_u_unc",l:"Certainty",t:"unc"},
+    ]},
+    {id:"walls",t:"Wall Envelope",d:"Substrate, cladding, soffit.",f:[
+      {k:"wall_substrate_u",l:"Substrate",t:"select",o:["wooden_sheathing_cont","wooden_sheathing_corn","wooden_planks","sheathing_insulate","foam_board","wooden_panels","wooden_un","metal_panes","not_applicable","un","ot"]},
+      {k:"wall_substrate_u_unc",l:"Certainty",t:"unc"},
+      {k:"wall_cladding_u",l:"Cladding",t:"select",o:["brick_veneer","brick","brick_un","wood_plank","wood_ot","wood_un","fiber_cement_board","steel_corrugated_panel","steel_un","steel_ot","vinyl_panel","vinyl_ot","aluminum","weatherboard","stone_ot","stucco","not_applicable","un","ot"]},
+      {k:"wall_cladding_u_unc",l:"Certainty",t:"unc"},
+      {k:"soffit_type_u",l:"Soffit Type",t:"select",o:["vinyl","metal","wood","un","not_applicable"]},
+      {k:"soffit_present_u",l:"Soffit Present",t:"yn",o:["yes","no"]},
+    ]},
+    {id:"fen",t:"Fenestration",d:"Window percentages and protection by elevation.",f:[
+      {k:"wall_fenesteration_per_front",l:"% Front",t:"pct"},{k:"wall_fenesteration_per_back",l:"% Back",t:"pct"},
+      {k:"wall_fenesteration_per_right",l:"% Right",t:"pct"},{k:"wall_fenesteration_per_left",l:"% Left",t:"pct"},
+      {k:"wall_fenestration_per_n",l:"% N",t:"pct"},{k:"wall_fenestration_per_s",l:"% S",t:"pct"},
+      {k:"wall_fenestration_per_e",l:"% E",t:"pct"},{k:"wall_fenestration_per_w",l:"% W",t:"pct"},
+      {k:"wall_fenesteration_protection_front",l:"Prot. Front",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_protection_front_unc",l:"Cert.",t:"unc"},
+      {k:"wall_fenesteration_protection_back",l:"Prot. Back",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_protection_back_unc",l:"Cert.",t:"unc"},
+      {k:"wall_fenesteration_protection_right",l:"Prot. Right",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_protection_right_unc",l:"Cert.",t:"unc"},
+      {k:"wall_fenesteration_protection_left",l:"Prot. Left",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_protection_left_unc",l:"Cert.",t:"unc"},
+      {k:"fenestration_protection_type_front",l:"Type Front",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
+      {k:"fenestration_protection_type_back",l:"Type Back",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
+      {k:"fenestration_protection_type_right",l:"Type Right",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
+      {k:"fenestration_protection_type_left",l:"Type Left",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
+      {k:"fenestration_protection_type_unc",l:"Prot. Type Cert.",t:"unc"},
+    ]},
+    {id:"doors",t:"Doors & Openings",d:"Large doors (garage) and standard doors.",f:[
+      {k:"large_door_present_front",l:"Large Front",t:"ynu",o:["yes","no","un"]},
+      {k:"large_door_present_back",l:"Large Back",t:"ynu",o:["yes","no","un"]},
+      {k:"large_door_present_right",l:"Large Right",t:"ynu",o:["yes","no","un"]},
+      {k:"large_door_present_left",l:"Large Left",t:"ynu",o:["yes","no","un"]},
+      {k:"door_present_n",l:"Door N",t:"ynu",o:["yes","no","un"]},{k:"door_present_s",l:"Door S",t:"ynu",o:["yes","no","un"]},
+      {k:"door_present_e",l:"Door E",t:"ynu",o:["yes","no","un"]},{k:"door_present_w",l:"Door W",t:"ynu",o:["yes","no","un"]},
+      {k:"large_door_opening_type_",l:"Large Door Type",t:"text"},{k:"opening_type",l:"Opening Type",t:"text"},
+    ]},
+    {id:"roof",t:"Roof System",d:"Structure, attachment, substrate, cover.",f:[
+      {k:"roof_system_u",l:"Roof System",t:"select",o:["steel","concrete_slab","wooden_rafters","wooden_trusses","wooden_un","metal_trusses","un","ot"]},
+      {k:"roof_system_u_unc",l:"Certainty",t:"unc"},
+      {k:"r2wall_attachment_u",l:"Roof-to-Wall",t:"select",o:["nails","metal_strap","bolted_connection","welded_connection","connection_un","not_applicable","un","ot"]},
+      {k:"r2wall_attachment_type_unc",l:"Certainty",t:"unc"},
+      {k:"roof_substrate_type_u",l:"Substrate",t:"select",o:["plywood","dimensional lumber","metal deck","concrete","none","ot","un"]},
+      {k:"roof_substrate_type_u_unc",l:"Certainty",t:"unc"},
+      {k:"roof_cover_u",l:"Cover",t:"select",o:["ashphalt","corrugated_metal","standing_seam_metal","tiles_clay","tiles_concrete","slate","wooden_shingles","un","ot"]},
+      {k:"overhang_length_u",l:"Overhang (m)",t:"number",h:"0 if none"},{k:"parapet_height_m",l:"Parapet (m)",t:"number",h:"0 if none"},
+      {k:"secondary_water_barrier_u",l:"2nd Water Barrier",t:"text"},
+    ]},
+    {id:"retro",t:"Retrofit & Status",d:"Retrofits, hazards, overall status.",f:[
+      {k:"retrofit_present_u",l:"Retrofit Present",t:"ynu",o:["yes","no","un"]},
+      {k:"retrofit_year_u",l:"Year",t:"number"},{k:"retrofit_type_u",l:"Type",t:"select",o:["building_addition","reinforced_masonry","steel_bracing","un","ot"]},
+      {k:"retrofit_type_unc_u",l:"Certainty",t:"unc"},
+      {k:"retrofit_type_1_u",l:"Retrofit 1",t:"text"},{k:"reotrofit_2_u",l:"Retrofit 2",t:"text"},
+      {k:"hazards_present_u",l:"Hazards",t:"select",o:["flood","rain","wind","surge","tree-fall","wind-borne_debris","un"]},
+      {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor","moderate","severe","destroyed"]},
+    ]},
+    {id:"dmg",t:"Damage Assessment",d:"Component ratings (0–5) and damage % by elevation.",f:[
+      {k:"wind_damage_rating_u",l:"Wind Damage",t:"rtg"},{k:"damage_indicator_u",l:"Damage Indicator",t:"rtg"},
+      {k:"degree_of_damage_u",l:"Degree of Damage",t:"rtg"},{k:"wind_damage_details_u",l:"Wind Damage Details",t:"ta"},
+      {k:"roof_structure_damage_u",l:"Roof Struct.",t:"rtg"},{k:"roof_structure_damage_u_per",l:"Roof Struct. %",t:"pct"},
+      {k:"roof_susbtrate_damage_u",l:"Roof Substr.",t:"rtg"},{k:"roof_substrate_damage_per",l:"Roof Substr. %",t:"pct"},
+      {k:"foundation_failure_u",l:"Foundation",t:"rtg"},{k:"foundatio_failure_per_u",l:"Foundation %",t:"pct"},
+      {k:"wall_structure_damage_u",l:"Wall Struct. Overall",t:"rtg"},
+      {k:"wall_structure_damage_per_front",l:"Wall Str. % Front",t:"pct"},{k:"wall_structure_damage_per_back",l:"Wall Str. % Back",t:"pct"},
+      {k:"wall_structure_damage_per_left",l:"Wall Str. % Left",t:"pct"},{k:"wall_structure_damage_per_right",l:"Wall Str. % Right",t:"pct"},
+      {k:"wall_structure_damage_n",l:"Wall Str. % N",t:"pct"},{k:"wall_structure_damage_s",l:"Wall Str. % S",t:"pct"},
+      {k:"wall_structure_damage_e",l:"Wall Str. % E",t:"pct"},{k:"wall_structure_damage_w",l:"Wall Str. % W",t:"pct"},
+      {k:"wall_substrate_damage_u",l:"Wall Substr. Overall",t:"rtg"},
+      {k:"wall_substrate_damage_per_front",l:"Substr. % Front",t:"pct"},{k:"wall_substrate_damage_per_back",l:"Substr. % Back",t:"pct"},
+      {k:"wall_substrate_damage_per_right",l:"Substr. % Right",t:"pct"},{k:"wall_substrate_damage_per_left",l:"Substr. % Left",t:"pct"},
+      {k:"wall_substrate_damage_n",l:"Substr. % N",t:"pct"},{k:"wall_substrate_damage_s",l:"Substr. % S",t:"pct"},
+      {k:"wall_substrate_damage_e",l:"Substr. % E",t:"pct"},{k:"wall_substrate_damage_w",l:"Substr. % W",t:"pct"},
+      {k:"wall_cladding_damage_per_front",l:"Clad. % Front",t:"pct"},{k:"wall_cladding_damage_per_back",l:"Clad. % Back",t:"pct"},
+      {k:"wall_cladding_damage_per_right",l:"Clad. % Right",t:"pct"},{k:"wall_cladding_damage_per_left",l:"Clad. % Left",t:"pct"},
+      {k:"wall_cladding_damage_n",l:"Clad. % N",t:"pct"},{k:"wall_cladding_damage_s",l:"Clad. % S",t:"pct"},
+      {k:"wall_cladding_damage_e",l:"Clad. % E",t:"pct"},{k:"wall_cladding_damage_w",l:"Clad. % W",t:"pct"},
+      {k:"damaged_fenesteration_per_front",l:"Fen. % Front",t:"pct"},{k:"damaged_fenesteration_per_back",l:"Fen. % Back",t:"pct"},
+      {k:"damaged_fenesteration_per_right",l:"Fen. % Right",t:"pct"},{k:"damaged_fenesteration_per_left",l:"Fen. % Left",t:"pct"},
+      {k:"wall_fenestration_damage_per_n",l:"Fen. % N",t:"pct"},{k:"wall_fenestration_damage_per_s",l:"Fen. % S",t:"pct"},
+      {k:"wall_fenestration_damage_per_e",l:"Fen. % E",t:"pct"},{k:"wall_fenestration_damage_per_w",l:"Fen. % W",t:"pct"},
+      {k:"soffit_damage_per_u",l:"Soffit %",t:"pct"},{k:"fascia_damage_per_u",l:"Fascia %",t:"pct"},
+      {k:"piles_damage_u",l:"Piles",t:"select",o:["0","1","2","3","4","5","not_applicable"]},
+      {k:"foundation_damage_cause_u",l:"Found. Cause",t:"select",o:["erosion","not_applicable","ot"]},
+      {k:"foundation_damage_u",l:"Foundation Dmg",t:"rtg"},{k:"foundation_damage_u_per",l:"Foundation %",t:"pct"},
+      {k:"oop_failure_n",l:"OOP N",t:"text"},{k:"oop_failure_s",l:"OOP S",t:"text"},
+      {k:"oop_failure_e",l:"OOP E",t:"text"},{k:"oop_failure_w",l:"OOP W",t:"text"},
+      {k:"ip_failure_n",l:"IP N",t:"text"},{k:"ip_failure_s",l:"IP S",t:"text"},
+      {k:"ip_failure_e",l:"IP E",t:"text"},{k:"ip_failure_w",l:"IP W",t:"text"},
+      {k:"surge_damage_rating_u",l:"Surge Rating",t:"text"},{k:"rainwater_ingress_damage_rating_u",l:"Rain Ingress",t:"text"},
+      {k:"wall_cladding_damage_level_u",l:"Clad. Level",t:"text"},{k:" stories_with_damage_u",l:"Stories w/ Dmg",t:"number"},
+      {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},{k:"damage_status",l:"Status",t:"select",o:["undamaged","minor","moderate","severe","destroyed"]},
+    ]},
+    {id:"photos",t:"Photos",d:"Links to overall and detailed photos.",f:[
+      {k:"overall_photos_front",l:"Overall Front",t:"text"},{k:"overall_photos_back",l:"Overall Back",t:"text"},
+      {k:"overall_photos_left",l:"Overall Left",t:"text"},{k:"overall_photos_right",l:"Overall Right",t:"text"},
+      {k:"detailed_photos_front",l:"Detail Front",t:"text"},{k:"detailed_photos_back",l:"Detail Back",t:"text"},
+      {k:"detailed_photos_left",l:"Detail Left",t:"text"},{k:"detailed_photos_right",l:"Detail Right",t:"text"},
+    ]},
+    {id:"heritage",t:"Heritage & Timeline",d:"Historic designations and pre/post-event status.",f:[
+      {k:"national_register_listing_year",l:"NRHP Year",t:"number"},
+      {k:"existed_during_tornado",l:"Existed During",t:"ynu",o:["yes","no","un"]},
+      {k:"buidling_use_before_tornado",l:"Use Before",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"]},
+      {k:"buidling_use_after_tornado",l:"Use After",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"]},
+      {k:"buidling_use_plan_after_tornado",l:"Planned Use",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"]},
+      {k:"demolishing_year",l:"Demolition Year",t:"number"},
+      {k:"single_unit",l:"Single Unit",t:"yn",o:["yes","no"]},{k:"multiple_unit",l:"Multiple Unit",t:"yn",o:["yes","no"]},
+      {k:"world_heritage_property",l:"World Heritage",t:"yn",o:["yes","no"]},{k:"hague_convention",l:"Hague Conv.",t:"yn",o:["yes","no"]},
+      {k:"sub_national_heritage _list",l:"Sub-National",t:"yn",o:["yes","no"]},{k:"iucn_protected_area",l:"IUCN Protected",t:"yn",o:["yes","no"]},
+      {k:"property_of_local_significance",l:"Local Signif.",t:"yn",o:["yes","no"]},
+      {k:"buidling_existed_5_yrs_before_tornado",l:"5yr Before",t:"ynu",o:["yes","no","un"]},
+      {k:"buidling_existed_3_yrs_before_tornado",l:"3yr Before",t:"ynu",o:["yes","no","un"]},
+      {k:"buidling_existed_1_yrs_before_tornado",l:"1yr Before",t:"ynu",o:["yes","no","un"]},
+      {k:"building_existed_during_tornado",l:"During",t:"ynu",o:["yes","no","un"]},
+      {k:"building_in_use_during_tornado",l:"In Use During",t:"ynu",o:["yes","no","un"]},
+      {k:"building_use_during_tornado",l:"Use During",t:"text"},
+      {k:"building_demolished_1_yrs_after_tornado",l:"Demol. 1yr After",t:"ynu",o:["yes","no","un"]},
+      {k:"building_demolished_3_yrs_after_tornado",l:"Demol. 3yr After",t:"ynu",o:["yes","no","un"]},
+      {k:"building_demolished_5_yrs_after_tornado",l:"Demol. 5yr After",t:"ynu",o:["yes","no","un"]},
+    ]},
+    {id:"mat",t:"Materials",d:"Horizontal = floors, roofs, foundations. Vertical = walls.",layout:"cb",f:[
+      {k:"const_material_h_stone",l:"Stone",t:"cb",g:"h"},{k:"const_material_h_brick",l:"Brick",t:"cb",g:"h"},
+      {k:"const_material_h_wood",l:"Wood",t:"cb",g:"h"},{k:"const_material_h_mud",l:"Mud",t:"cb",g:"h"},
+      {k:"const_material_h_rf_masonry",l:"Reinf. Masonry",t:"cb",g:"h"},{k:"const_material_h_rglr_stone",l:"Regular Stone",t:"cb",g:"h"},
+      {k:"const_material_h_rf_conc",l:"Reinf. Concrete",t:"cb",g:"h"},{k:"const_material_h_ir_stone",l:"Irregular Stone",t:"cb",g:"h"},
+      {k:"const_material_h_othr",l:"Other",t:"cb",g:"h"},
+      {k:"const_material_v_stone",l:"Stone",t:"cb",g:"v"},{k:"const_material_v_brick",l:"Brick",t:"cb",g:"v"},
+      {k:"const_material_v_wood",l:"Wood",t:"cb",g:"v"},{k:"const_material_v_mud",l:"Mud",t:"cb",g:"v"},
+      {k:"const_material_v_rf_masonry",l:"Reinf. Masonry",t:"cb",g:"v"},{k:"const_material_v_rglr_stone",l:"Regular Stone",t:"cb",g:"v"},
+      {k:"const_material_v_rf_conc",l:"Reinf. Concrete",t:"cb",g:"v"},{k:"const_material_v_ir_stone",l:"Irregular Stone",t:"cb",g:"v"},
+      {k:"const_material_v_othr",l:"Other",t:"cb",g:"v"},
+    ]},
+    {id:"prop",t:"Property & Ownership",d:"Property type, heritage value, ownership.",layout:"cb",f:[
+      {k:"prop_agricultural ",l:"Agricultural",t:"cb",g:"pt"},{k:"prop_cave",l:"Cave",t:"cb",g:"pt"},
+      {k:"prop_culture _entertainment_facility",l:"Culture/Entertainment",t:"cb",g:"pt"},{k:"prop_forest",l:"Forest",t:"cb",g:"pt"},
+      {k:"prop_industrial_facility",l:"Industrial",t:"cb",g:"pt"},{k:"prop_lake",l:"Lake",t:"cb",g:"pt"},
+      {k:"prop_military",l:"Military",t:"cb",g:"pt"},{k:"prop_nature",l:"Nature",t:"cb",g:"pt"},
+      {k:"prop_religious",l:"Religious",t:"cb",g:"pt"},{k:"prop_rock formation",l:"Rock Formation",t:"cb",g:"pt"},
+      {k:"prop_sports_facility",l:"Sports",t:"cb",g:"pt"},{k:"prop_unilities_facility",l:"Utilities",t:"cb",g:"pt"},
+      {k:"prop_archaeological",l:"Archaeological",t:"cb",g:"pt"},{k:"prop_commemorative structure or landmark",l:"Commemorative",t:"cb",g:"pt"},
+      {k:"prop_ecosystem",l:"Ecosystem",t:"cb",g:"pt"},{k:"prop_habitat",l:"Habitat",t:"cb",g:"pt"},
+      {k:"prop_infrastructure",l:"Infrastructure",t:"cb",g:"pt"},{k:"prop_law / government facility",l:"Government",t:"cb",g:"pt"},
+      {k:"prop_mine",l:"Mine",t:"cb",g:"pt"},{k:"prop_park / garden",l:"Park/Garden",t:"cb",g:"pt"},
+      {k:"prop_residential facility",l:"Residential",t:"cb",g:"pt"},{k:"prop_scenic area",l:"Scenic Area",t:"cb",g:"pt"},
+      {k:"prop_transportation facility",l:"Transportation",t:"cb",g:"pt"},{k:"prop_volcano",l:"Volcano",t:"cb",g:"pt"},
+      {k:"prop_battlefield",l:"Battlefield",t:"cb",g:"pt"},{k:"prop_commercial / exchange facility",l:"Commercial",t:"cb",g:"pt"},
+      {k:"prop_educational facility",l:"Educational",t:"cb",g:"pt"},{k:"prop_health / welfare facility",l:"Health/Welfare",t:"cb",g:"pt"},
+      {k:"prop_island(s)",l:"Island(s)",t:"cb",g:"pt"},{k:"prop_marine zone",l:"Marine Zone",t:"cb",g:"pt"},
+      {k:"prop_mountain",l:"Mountain",t:"cb",g:"pt"},{k:"parking / storage facility",l:"Parking/Storage",t:"cb",g:"pt"},
+      {k:"river catchment system",l:"River Catchment",t:"cb",g:"pt"},{k:"sea",l:"Sea",t:"cb",g:"pt"},
+      {k:"underground facility",l:"Underground",t:"cb",g:"pt"},{k:"zoological park",l:"Zoo",t:"cb",g:"pt"},
+      {k:"prop_val_evidential",l:"Evidential",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
+      {k:"prop_val_historical",l:"Historical",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
+      {k:"prop_val_aesthetic",l:"Aesthetic",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
+      {k:"prop_val_communal",l:"Communal",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
+      {k:"owner_individual",l:"Individual",t:"cb",g:"own"},{k:"owner_business",l:"Business",t:"cb",g:"own"},
+      {k:"owner_government",l:"Government",t:"cb",g:"own"},{k:"owner_ngo",l:"NGO",t:"cb",g:"own"},
+      {k:"owner_religious ",l:"Religious",t:"cb",g:"own"},{k:"owner_unknown",l:"Unknown",t:"cb",g:"own"},
+    ]},
+    {id:"notes",t:"Notes",d:"Additional observations.",f:[
+      {k:"notes",l:"Notes",t:"ta"},
+    ]},
+  ],
+  exportOrder: ["S.No.","completed_by","ref# (DELETE LATER)","tornado_name","tornado_year","town","overall_photos_link","tornado_EF","tornado_start_lat","tornado_end_lat","tornado_start_long","tornado_end_long","latitude","longitude","complete_address","building_name_listing","building_name_current","archetype","located_in_historic_district","occupany_u","number_stories","year_built_u","building_area_m2","building_urban_setting","building_position_on_street","buidling_height_m","first_floor_elevation_m","front_elevation_orientation","wall_length_side","wall_length_front","wall_thickness","roof_shape_u","roof_slope_u","construction_type_u","construction_type_u_unc","mwfrs_u_wall","mwfrs_u_wall_unc","mwfrs_u_roof","mwfrs_u_roof_unc","mwfrs_u_moment_frame","mwfrs_u_unc","mwfrs_u_unc","masonry_leaves","masonry_leaves_unc","structural_wall_system_u","foundation_type_u","foundation_type_u_unc","wall_anchorage_type_u","wall_anchorage_type_u_unc","wall_substrate_u","wall_substrate_u_unc","wall_cladding_u","wall_cladding_u_unc","soffit_type_u","soffit_present_u","wall_fenesteration_per_front","wall_fenesteration_per_back","wall_fenesteration_per_right","wall_fenesteration_per_left","wall_fenestration_per_n","wall_fenestration_per_s","wall_fenestration_per_e","wall_fenestration_per_w","wall_fenesteration_protection_front","wall_fenesteration_protection_front_unc","wall_fenesteration_protection_back","wall_fenesteration_protection_back_unc","wall_fenesteration_protection_right","wall_fenesteration_protection_left","fenestration_protection_type_front","fenestration_protection_type_back","fenestration_protection_type_right","fenestration_protection_type_left","large_door_present_front","large_door_present_back","large_door_present_right","large_door_present_left","door_present_n","door_present_s","door_present_e","door_present_w","roof_system_u","roof_system_u_unc","r2wall_attachment_u","roof_substrate_type_u","roof_substrate_type_u_unc","roof_cover_u","repla","overhang_length_u","parapet_height_m","retrofit_year_u","retrofit_present_u","retrofit_type_u","retrofit_type_unc_u","hazards_present_u","status_u","wind_damage_rating_u","damage_indicator_u","degree_of_damage_u","wind_damage_details_u","roof_structure_damage_u","roof_structure_damage_u_per","roof_susbtrate_damage_u","roof_substrate_damage_per","foundation_failure_u","foundatio_failure_per_u","wall_structure_damage_per_front","wall_structure_damage_per_back","wall_structure_damage_per_left","wall_structure_damage_per_right","wall_structure_damage_u","wall_structure_damage_n","wall_structure_damage_s","wall_structure_damage_e","wall_structure_damage_w","wall_substrate_damage_per_front","wall_substrate_damage_per_back","wall_substrate_damage_per_right","wall_substrate_damage_per_left","wall_substrate_damage_n","wall_substrate_damage_s","wall_substrate_damage_e","wall_substrate_damage_w","wall_substrate_damage_u","wall_cladding_damage_per_front","wall_cladding_damage_per_back","wall_cladding_damage_per_right","wall_cladding_damage_per_left","wall_cladding_damage_n","wall_cladding_damage_s","wall_cladding_damage_e","wall_cladding_damage_w","damaged_fenesteration_per_front","damaged_fenesteration_per_back","damaged_fenesteration_per_right","damaged_fenesteration_per_left","wall_fenestration_damage_per_n","wall_fenestration_damage_per_s","wall_fenestration_damage_per_e","wall_fenestration_damage_per_w","soffit_damage_per_u","fascia_damage_per_u","piles_damage_u","foundation_damage_cause_u","foundation_damage_u","foundation_damage_u_per","risk_category_16","building_low_rise","overall_photos_front","overall_photos_back","overall_photos_left","overall_photos_right","detailed_photos_front","detailed_photos_back","detailed_photos_left","detailed_photos_right","elevations_assessed_front_o","elevations_assessed_back_o","elevations_assessed_left_o","elevations_assessed_right_o","address_suite","address_locality","address_postal_code","address_country","occupancy_o","year_built_o","understory_pct_of_building_footprint","roof_shape_o","roof_slope_o","construction_type_o","mwfrs_o","structural_wall_system_o","foundation_type_o","wall_anchorage_type_o","wall_substrate_o","wall_cladding_o","soffit_type_o","wall_fenesteration_protection_right_unc","wall_fenesteration_protection_left_unc","fenestration_protection_type_unc","fenesteration_ratio_o","large_door_opening_type_","opening_type","roof_system_o","r2wall_attachment_o","r2wall_attachment_type_unc","roof_substrate_type_o","roof_cover_o","overhang_length_o","secondary_water_barrier_o","secondary_water_barrier_u","retrofit_type_1_o","retrofit_type_1_u","retrofit_type_2_o","reotrofit_2_u","retrofit_year_o","hazards_present_o","status_o","wind_damage_rating_o","overall_damage_notes_o","surge_damage_rating_o","surge_damage_rating_u","rainwater_ingress_damage_rating_o","rainwater_ingress_damage_rating_u","damage_indicator_o","degree_of_damage_o","wind_damage_details_o","roof_structure_damage_o","roof_susbtrate_damage_o","foundation_failure_o","wall_structure_damage_o","wall_substrate_damage_o","wall_cladding_damage_o","wall_cladding_damage_level_u"," stories_with_damage_o"," stories_with_damage_u","soffit_damage_per_o","fascia_damage_per_o","per_building_footprint_eroded_o","per_building_footprint_eroded_u","damage_understory_per_o","piles_damage_o","foundation_damage_cause_o","oop_failure_n","oop_failure_s","oop_failure_e","oop_failure_w","ip_failure_n","ip_failure_s","ip_failure_e","ip_failure_w","building_open","building_enclosed","building_regular_shape","exposure_category","building_rigid","national_register_listing_year","existed_during_tornado","buidling_use_before_tornado","buidling_use_after_tornado","buidling_use_plan_after_tornado","demolishing_year","single_unit","multiple_unit","world_heritage_property","hague_convention","sub_national_heritage _list","iucn_protected_area","property_of_local_significance","const_material_h_stone","const_material_h_brick","const_material_h_wood","const_material_h_mud","const_material_h_rf_masonry","const_material_h_rglr_stone","const_material_h_rf_conc","const_material_h_ir_stone","const_material_h_othr","const_material_v_stone","const_material_v_brick","const_material_v_wood","const_material_v_mud","const_material_v_rf_masonry","const_material_v_rglr_stone","const_material_v_rf_conc","const_material_v_ir_stone","const_material_v_othr","prop_agricultural ","prop_cave","prop_culture _entertainment_facility","prop_forest","prop_industrial_facility","prop_lake","prop_military","prop_nature","prop_religious","prop_rock formation","prop_sports_facility","prop_unilities_facility","prop_archaeological","prop_commemorative structure or landmark","prop_ecosystem","prop_habitat","prop_infrastructure","prop_law / government facility","prop_mine","prop_park / garden","prop_residential facility","prop_scenic area","prop_transportation facility","prop_volcano","prop_battlefield","prop_commercial / exchange facility","prop_educational facility","prop_health / welfare facility","prop_island(s)","prop_marine zone","prop_mountain","parking / storage facility","river catchment system","sea","underground facility","zoological park","prop_val_evidential","prop_val_historical","prop_val_aesthetic","prop_val_communal","owner_individual","owner_business","owner_government","owner_ngo","owner_religious ","owner_unknown","buidling_existed_5_yrs_before_tornado","buidling_existed_3_yrs_before_tornado","buidling_existed_1_yrs_before_tornado","building_existed_during_tornado","building_in_use_during_tornado","building_use_during_tornado","damage_status","building_demolished_1_yrs_after_tornado","building_demolished_3_yrs_after_tornado","building_demolished_5_yrs_after_tornado","notes"]
+};
+
+// ── State ───────────────────────────────────────────────────────────
+const STORE_KEY = "tornado_db_buildings";
+let blds = [], curId = null, curSec = 0, fd = {};
+let saveT = null;
+
+function loadAll() {
+  try { blds = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch(e) { blds = []; }
+}
+function saveAll() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(blds)); } catch(e) {}
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
+function e(s) { return s == null ? "" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function lbl(b) { return b.complete_address || b.building_name_current || b.building_name_listing || "Building " + (b.sno || "?"); }
+function secProg(sec) {
+  let n=0; for (const f of sec.f) { const v=fd[f.k]; if(v!==undefined&&v!==""&&v!==null) n++; }
+  return {n, tot:sec.f.length};
+}
+
+// ── Sidebar ─────────────────────────────────────────────────────────
+function renderList() {
+  const el = document.getElementById("blist");
+  if (!blds.length) { el.innerHTML = '<div style="padding:16px 14px;color:var(--text-muted);font-size:12px">No buildings yet.</div>'; return; }
+  const totalF = S.sections.reduce((s,sec) => s+sec.f.length, 0);
+  el.innerHTML = blds.map(b => {
+    let n=0; for(const sec of S.sections) for(const f of sec.f) { if(b[f.k]!==undefined&&b[f.k]!==""&&b[f.k]!==null) n++; }
+    const p = n/totalF;
+    const dc = p > .7 ? "hi" : p > .1 ? "mid" : "lo";
+    return `<div class="bld-item ${b._id===curId?'active':''}" data-id="${b._id}">
+      <span class="n">${e(b.sno)}</span><span class="a">${e(lbl(b))}</span><span class="dot ${dc}"></span><button class="del-x" data-did="${b._id}" title="Delete">&times;</button></div>`;
+  }).join("");
+  el.querySelectorAll(".bld-item").forEach(x => {
+    x.onclick = (ev) => { if (!ev.target.classList.contains("del-x")) selBld(x.dataset.id); };
+  });
+  el.querySelectorAll(".del-x").forEach(x => {
+    x.onclick = (ev) => { ev.stopPropagation(); delBuildingById(x.dataset.did); };
+  });
+}
+
+function selBld(id) {
+  curId = id; curSec = 0;
+  const b = blds.find(x => x._id === id);
+  if (b) { fd = {...b}; show(); }
+}
+
+function show() {
+  document.getElementById("empty").hidden = true;
+  const fv = document.getElementById("fview"); fv.classList.add("on");
+  renderTabs(); renderForm(); renderMap(); renderList();
+}
+
+// ── Add / Delete ────────────────────────────────────────────────────
+function addBuilding() {
+  const sno = blds.length + 1;
+  const nm = document.getElementById("uname").value.trim();
+  const b = { _id: "b_" + Date.now(), sno, "S.No.": sno, completed_by: nm, ...S.defaults };
+  blds.push(b); saveAll(); selBld(b._id);
+}
+
+function delBuildingById(id) {
+  const b = blds.find(x => x._id === id);
+  if (!b || !confirm("Delete " + lbl(b) + "?")) return;
+  blds = blds.filter(x => x._id !== id); saveAll();
+  if (curId === id) { curId = null; fd = {};
+    document.getElementById("empty").hidden = false;
+    document.getElementById("fview").classList.remove("on");
+  }
+  renderList();
+}
+
+function delBuilding() {
+  if (!curId || !confirm("Delete this building?")) return;
+  blds = blds.filter(b => b._id !== curId); saveAll();
+  curId = null; fd = {};
+  document.getElementById("empty").hidden = false;
+  document.getElementById("fview").classList.remove("on");
+  renderList();
+}
+
+// ── Save ────────────────────────────────────────────────────────────
+function schedSave() {
+  clearTimeout(saveT);
+  document.getElementById("sbar").textContent = "Saving…";
+  document.getElementById("sbar").className = "saving";
+  saveT = setTimeout(() => {
+    const idx = blds.findIndex(b => b._id === curId);
+    if (idx >= 0) { blds[idx] = {...fd}; saveAll(); }
+    const sb = document.getElementById("sbar");
+    sb.textContent = "Saved"; sb.className = "saved";
+    setTimeout(() => { sb.textContent = ""; sb.className = ""; }, 1500);
+    renderList();
+  }, 800);
+}
+
+function setF(k, v) { fd[k] = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
+
+// ── Tabs ────────────────────────────────────────────────────────────
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = S.sections.map((sec,i) => {
+    const {n,tot} = secProg(sec);
+    const pc = n===0?"":n>=tot?"hi":"mid";
+    return `<div class="tab ${i===curSec?'on':''}" data-i="${i}"><span class="pip ${pc}"></span>${e(sec.t)}</div>`;
+  }).join("");
+  document.getElementById("tabs").querySelectorAll(".tab").forEach(x =>
+    x.onclick = () => { curSec = +x.dataset.i; renderTabs(); renderForm(); }
+  );
+}
+
+// ── Leaflet Map ─────────────────────────────────────────────────────
+let leafMap = null, leafMarker = null, currentTileLayer = null;
+const STL_CENTER = [38.643, -90.325];
+const TILES = {
+  street: { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attr: "&copy; OpenStreetMap" },
+  satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr: "&copy; Esri" }
+};
+let tileMode = "satellite";
+
+function initMap() {
+  if (leafMap) return;
+  leafMap = L.map("mapframe", { zoomControl: true }).setView(STL_CENTER, 17);
+  currentTileLayer = L.tileLayer(TILES[tileMode].url, {
+    maxZoom: 20, attribution: TILES[tileMode].attr
+  }).addTo(leafMap);
+  leafMap.on("click", function(ev) {
+    const lat = Math.round(ev.latlng.lat * 1e6) / 1e6;
+    const lon = Math.round(ev.latlng.lng * 1e6) / 1e6;
+    placeMarker(lat, lon);
+    setF("latitude", lat);
+    setF("longitude", lon);
+    updateMapUI();
+    renderForm();
+  });
+  updateMapLinks();
+}
+
+function switchTiles() {
+  tileMode = tileMode === "satellite" ? "street" : "satellite";
+  if (currentTileLayer) leafMap.removeLayer(currentTileLayer);
+  currentTileLayer = L.tileLayer(TILES[tileMode].url, {
+    maxZoom: 20, attribution: TILES[tileMode].attr
+  }).addTo(leafMap);
+  updateMapLinks();
+}
+
+function placeMarker(lat, lon) {
+  if (leafMarker) leafMap.removeLayer(leafMarker);
+  leafMarker = L.marker([lat, lon]).addTo(leafMap);
+}
+
+function updateMapLinks() {
+  const lat = fd.latitude, lon = fd.longitude;
+  const links = document.getElementById("maplinks");
+  let html = '<button onclick="switchTiles()">' + (tileMode === "satellite" ? "Street Map" : "Satellite") + '</button>';
+  if (lat && lon) {
+    html += '<span class="sep">|</span>';
+    html += '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + ',' + lon + '" target="_blank" rel="noopener">Street View</a>';
+    html += '<a href="https://earth.google.com/web/@' + lat + ',' + lon + ',0a,200d,35y,0h,0t,0r" target="_blank" rel="noopener">Google Earth</a>';
+  }
+  links.innerHTML = html;
+}
+
+function updateMapUI() {
+  const lat = fd.latitude, lon = fd.longitude;
+  const coords = document.getElementById("mapcoords");
+  if (lat && lon) {
+    coords.hidden = false;
+    coords.innerHTML = '<span class="coord-val">' + lat + ', ' + lon + '</span>';
+  } else {
+    coords.hidden = true;
+  }
+  updateMapLinks();
+}
+
+function searchAddr() {
+  var q = document.getElementById("addr-search").value.trim();
+  if (!q) return;
+  var btn = document.querySelector(".map-search button");
+  btn.textContent = "...";
+  fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(q) + "&format=json&limit=1", {
+    headers: {"Accept": "application/json"}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.textContent = "Go";
+    if (data && data.length > 0) {
+      var lat = Math.round(parseFloat(data[0].lat) * 1e6) / 1e6;
+      var lon = Math.round(parseFloat(data[0].lon) * 1e6) / 1e6;
+      leafMap.setView([lat, lon], 19);
+      placeMarker(lat, lon);
+      setF("latitude", lat);
+      setF("longitude", lon);
+      updateMapUI();
+      renderForm();
+      if (data[0].display_name) {
+        var shortAddr = data[0].display_name.split(",").slice(0, 3).join(",");
+        setF("complete_address", shortAddr);
+      }
+    } else {
+      alert("Address not found. Try a more specific search.");
+    }
+  })
+  .catch(function() { btn.textContent = "Go"; alert("Search failed. Check your connection."); });
+}
+
+function renderMap() {
+  setTimeout(function() {
+    initMap();
+    var lat = fd.latitude, lon = fd.longitude;
+    if (lat && lon) {
+      leafMap.setView([lat, lon], 19);
+      placeMarker(lat, lon);
+    } else {
+      leafMap.setView(STL_CENTER, 17);
+      if (leafMarker) { leafMap.removeLayer(leafMarker); leafMarker = null; }
+    }
+    leafMap.invalidateSize();
+    updateMapUI();
+  }, 50);
+}
+
+// ── Form Rendering ──────────────────────────────────────────────────
+function renderForm() {
+  const sec = S.sections[curSec];
+  const el = document.getElementById("fscroll");
+  let h = `<h2 class="sec-title">${e(sec.t)}</h2>`;
+  if (sec.d) h += `<p class="sec-desc">${e(sec.d)}</p>`;
+
+  if (sec.layout === "cb") { h += renderCbSec(sec); }
+  else {
+    h += '<div class="fgrid">';
+    for (const f of sec.f) h += renderFG(f);
+    h += '</div>';
+  }
+
+  h += '<div class="nav">';
+  h += curSec > 0 ? `<button class="btn btn-s" id="pbtn">&larr; ${e(S.sections[curSec-1].t)}</button>` : '<span></span>';
+  h += '<button class="btn btn-d" id="dbtn">Delete</button>';
+  h += curSec < S.sections.length-1 ? `<button class="btn btn-p" id="nbtn">${e(S.sections[curSec+1].t)} &rarr;</button>` : '<span></span>';
+  h += '</div>';
+
+  el.innerHTML = h;
+  el.scrollTop = 0;
+  bindForm();
+}
+
+const GL = {h:"Horizontal (Floors, Roofs)",v:"Vertical (Walls)",pt:"Property Type",val:"Heritage Value",own:"Ownership"};
+
+function renderCbSec(sec) {
+  const gs = {}; const loose = [];
+  for (const f of sec.f) { if(f.g) { (gs[f.g]||(gs[f.g]=[])).push(f); } else loose.push(f); }
+  let h = "";
+  for (const [gid, flds] of Object.entries(gs)) {
+    h += `<div class="subhdr">${e(GL[gid]||gid)}</div>`;
+    if (flds[0].t === "cb") {
+      h += '<div class="cbg">';
+      for (const f of flds) {
+        h += `<label><input type="checkbox" data-k="${e(f.k)}" ${fd[f.k]==="yes"?"checked":""}> ${e(f.l)}</label>`;
+      }
+      h += '</div>';
+    } else {
+      h += '<div class="fgrid">';
+      for (const f of flds) h += renderFG(f);
+      h += '</div>';
+    }
+  }
+  if (loose.length) { h += '<div class="fgrid">'; for (const f of loose) h += renderFG(f); h += '</div>'; }
+  return h;
+}
+
+function renderFG(f) {
+  const v = fd[f.k]; const fw = f.t==="ta" ? " fw" : "";
+  let h = `<div class="fg${fw}"><div class="fl">${e(f.l)}`;
+  if (f.h) h += ` <span class="hi">?<span class="tt">${e(f.h)}</span></span>`;
+  h += '</div>' + renderIn(f, v) + '</div>';
+  return h;
+}
+
+function renderIn(f, val) {
+  const v = val != null ? val : "", dk = `data-k="${e(f.k)}"`;
+  switch(f.t) {
+    case "text": return `<input type="text" ${dk} value="${e(v)}">`;
+    case "number": return `<input type="number" ${dk} value="${e(v)}" step="any">`;
+    case "pct": return `<input type="number" ${dk} value="${e(v)}" min="0" max="100" placeholder="0–100">`;
+    case "ta": return `<textarea ${dk}>${e(v)}</textarea>`;
+    case "select": return `<select ${dk}><option value="">--</option>${(f.o||[]).map(o => `<option value="${e(o)}" ${String(v)===String(o)?"selected":""}>${e(o)}</option>`).join("")}</select>`;
+    case "ynu": case "yn":
+      return `<div class="rg">${(f.o||["yes","no"]).map(c => `<label class="${String(v)===c?'on':''}" data-k="${e(f.k)}" data-v="${c}" onclick="rc(this)">${c}</label>`).join("")}</div>`;
+    case "rtg":
+      return `<div class="rtg">${[0,1,2,3,4,5].map(n => `<button type="button" class="${String(v)===String(n)?'on':''}" data-k="${e(f.k)}" data-v="${n}" onclick="bc(this)">${n}</button>`).join("")}</div>`;
+    case "unc":
+      return `<div class="ug">${[1,2,3].map(n => `<button type="button" class="${String(v)===String(n)?'on':''}" data-k="${e(f.k)}" data-v="${n}" onclick="bc(this)" title="${['','Certain','Probable','Guess'][n]}">${n}</button>`).join("")}</div>`;
+    case "cb": return `<input type="checkbox" ${dk} ${v==="yes"?"checked":""}>`;
+    default: return `<input type="text" ${dk} value="${e(v)}">`;
+  }
+}
+
+function bindForm() {
+  const el = document.getElementById("fscroll");
+  el.querySelectorAll("input[type=text],input[type=number],textarea").forEach(x => x.onchange = () => setF(x.dataset.k, x.value));
+  el.querySelectorAll("select").forEach(x => x.onchange = () => setF(x.dataset.k, x.value));
+  el.querySelectorAll("input[type=checkbox]").forEach(x => x.onchange = () => setF(x.dataset.k, x.checked?"yes":"no"));
+  const p = document.getElementById("pbtn"), n = document.getElementById("nbtn"), d = document.getElementById("dbtn");
+  if (p) p.onclick = () => { curSec--; renderTabs(); renderForm(); };
+  if (n) n.onclick = () => { curSec++; renderTabs(); renderForm(); };
+  if (d) d.onclick = delBuilding;
+}
+
+window.rc = function(el) {
+  setF(el.dataset.k, el.dataset.v);
+  el.parentElement.querySelectorAll("label").forEach(l => l.classList.remove("on"));
+  el.classList.add("on");
+};
+window.bc = function(el) {
+  setF(el.dataset.k, el.dataset.v);
+  el.parentElement.querySelectorAll("button").forEach(b => b.classList.remove("on"));
+  el.classList.add("on");
+};
+
+// ── Export ───────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!blds.length) { alert("No buildings to export."); return; }
+  const hdr = S.exportOrder;
+  const esc = v => { if(v==null||v==="") return ""; const s=String(v); return s.includes(",")||s.includes('"')||s.includes("\n") ? '"'+s.replace(/"/g,'""')+'"' : s; };
+  let csv = hdr.map(esc).join(",") + "\n";
+  for (const b of blds) csv += hdr.map(h => esc(b[h])).join(",") + "\n";
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "StLouis_Tornado_DataInput_export.csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+// ── Mobile ──────────────────────────────────────────────────────────
+function openSidebar() {
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("on");
+}
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("on");
+}
+function toggleMap() {
+  document.getElementById("mappanel").classList.toggle("open");
+}
+function updateMobTitle() {
+  const el = document.getElementById("mob-title");
+  if (curId && fd) {
+    el.textContent = lbl(fd);
+  } else {
+    el.textContent = "Tornado Damage DB";
+  }
+}
+
+// Show/hide map close button on mobile
+const mq = window.matchMedia("(max-width: 768px)");
+function onMqChange(e) {
+  const mc = document.getElementById("map-close");
+  if (mc) mc.style.display = e.matches ? "block" : "none";
+}
+mq.addEventListener("change", onMqChange);
+onMqChange(mq);
+
+// Patch selBld to close sidebar on mobile and update mobile title
+const _origSelBld = selBld;
+selBld = function(id) {
+  _origSelBld(id);
+  closeSidebar();
+  updateMobTitle();
+};
+
+// Patch addBuilding to close sidebar on mobile
+const _origAdd = addBuilding;
+addBuilding = function() {
+  _origAdd();
+  closeSidebar();
+  updateMobTitle();
+};
+
+loadAll();
+try { const n = localStorage.getItem("tornado_db_user"); if(n) document.getElementById("uname").value = n; } catch(e) {}
+document.getElementById("uname").onchange = function() { try { localStorage.setItem("tornado_db_user", this.value); } catch(e) {} };
+renderList();
+</script>
+</body>
+</html>

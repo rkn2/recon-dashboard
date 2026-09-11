@@ -66,9 +66,14 @@ header p{font-size:13px;color:var(--ink3);margin:0}
 .dot-lg{width:8px;height:8px}
 .tile-val{font-size:34px;font-weight:700;line-height:1;margin-bottom:4px}
 .tile-sub{font-size:12px;color:var(--ink3)}
+.tile-entry{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;text-decoration:none}
+.tile-entry:hover{text-decoration:underline}
 
 .proj{margin-bottom:32px}
 .proj-hd{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.entry-btn{margin-left:auto;font-size:11px;font-weight:600;text-decoration:none;text-transform:none;letter-spacing:0;padding:5px 14px;border-radius:5px;background:var(--btn-c,var(--blue));color:#fff;transition:opacity .15s}
+.entry-btn:hover{opacity:.85}
+.entry-soon{margin-left:auto;font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink3);font-style:italic}
 .proj-body{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start}
 
 .bar-row{display:grid;grid-template-columns:74px 1fr 30px;align-items:center;gap:8px;height:26px}
@@ -131,13 +136,16 @@ const D={"stlouis":[{"s":"Avery","a":"8025 Davis Dr,\u00a0Saint Louis, MO 63105"
 const PROJECTS=[
   {key:'stlouis',label:'St. Louis Tornado',loc:'St. Louis, MO',color:'blue',
    students:{Brian:146,Bri:111,Nymir:76,Alex:38,Avery:9,Violet:2},total:382,nstu:6,
-   filter:p=>p.la>38.63&&p.la<38.66&&p.lo<-90.05},
+   filter:p=>p.la>38.63&&p.la<38.66&&p.lo<-90.05,
+   entryUrl:'tornado.html'},
   {key:'montpelier',label:'Montpelier Flood',loc:'Montpelier, VT',color:'orange',
    students:{Owen:125,Kaya:77,Gianna:5,Grace:1},total:208,nstu:4,
-   filter:p=>p.la>44.2&&p.la<44.5&&p.la<90},
+   filter:p=>p.la>44.2&&p.la<44.5&&p.la<90,
+   entryUrl:null},
   {key:'marshall',label:'Marshall Flood',loc:'Marshall, NC',color:'aqua',
    students:{Yaadhavi:25,Micah:24,Journey:21},total:71,nstu:3,
-   filter:p=>p.la>35.79&&p.la<35.81&&p.lo&&p.lo<-82}
+   filter:p=>p.la>35.79&&p.la<35.81&&p.lo&&p.lo<-82,
+   entryUrl:null}
 ];
 
 const MAX_BAR=146;
@@ -167,7 +175,8 @@ PROJECTS.forEach(pr=>{
   const t=document.createElement('div');t.className='tile';
   t.innerHTML=`<div class="tile-lbl"><span class="dot dot-lg" style="background:var(--${pr.color})"></span>${pr.label}</div>
     <div class="tile-val" style="color:var(--${pr.color})">${pr.total}</div>
-    <div class="tile-sub">buildings surveyed by ${pr.nstu} students</div>`;
+    <div class="tile-sub">buildings surveyed by ${pr.nstu} students</div>
+    ${pr.entryUrl?`<a href="${pr.entryUrl}" class="tile-entry" style="color:var(--${pr.color})">Enter data &rarr;</a>`:''}`;
   tilesEl.appendChild(t);
 });
 
@@ -178,7 +187,7 @@ const maps=[];
 PROJECTS.forEach(pr=>{
   const sec=document.createElement('div');sec.className='proj';
   const hd=document.createElement('div');hd.className='proj-hd';
-  hd.innerHTML=`<span class="dot dot-sm" style="background:var(--${pr.color})"></span>${pr.label}`;
+  hd.innerHTML=`<span class="dot dot-sm" style="background:var(--${pr.color})"></span>${pr.label}${pr.entryUrl?`<a href="${pr.entryUrl}" class="entry-btn" style="--btn-c:var(--${pr.color})">Enter Data</a>`:'<span class="entry-soon">Form coming soon</span>'}`;
   sec.appendChild(hd);
   const body=document.createElement('div');body.className='proj-body';
 
