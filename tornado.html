@@ -164,8 +164,79 @@ button { cursor: pointer; }
 .pip.mid { background: var(--warning); }
 .pip.hi { background: var(--success); }
 
-/* Content split: form + map panel */
-#content { display: flex; flex: 1; overflow: hidden; }
+/* Content: top/bottom split */
+#content { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+/* Reference panel (top) */
+#ref-panel {
+  height: 45%; min-height: 200px; display: flex; flex-direction: column;
+  background: var(--surface); overflow: hidden; flex-shrink: 0;
+}
+#ref-tabs {
+  display: flex; align-items: center; gap: 0; border-bottom: 1px solid var(--border);
+  background: var(--surface-alt); flex-shrink: 0; padding-right: 8px;
+}
+.rtab {
+  font: inherit; font-size: 12px; font-weight: 500; padding: 8px 14px;
+  color: var(--text-muted); background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
+}
+.rtab:hover { color: var(--text); }
+.rtab.on { color: var(--accent); border-bottom-color: var(--accent); }
+.ref-search {
+  margin-left: auto; display: flex; gap: 0;
+}
+.ref-search input {
+  font: inherit; font-size: 12px; padding: 5px 8px; width: 180px;
+  border: 1px solid var(--input-border); border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--input-bg); color: var(--text); border-right: none;
+}
+.ref-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); z-index: 1; }
+.ref-search button {
+  font: inherit; font-size: 11px; font-weight: 500; padding: 5px 10px;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 0 var(--radius) var(--radius) 0; cursor: pointer;
+}
+.ref-search button:hover { background: var(--accent-hover); }
+#ref-content { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+.ref-pane { position: absolute; inset: 0; display: none; }
+.ref-pane.on { display: flex; flex-direction: column; }
+#ref-map { display: none; }
+#ref-map.on { display: block; }
+#ref-sv { align-items: center; justify-content: center; }
+#ref-sv iframe { width: 100%; height: 100%; border: 0; }
+#ref-sv .sv-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
+#ref-photos { padding: 16px; overflow-y: auto; gap: 12px; }
+.photo-card {
+  display: block; padding: 14px 16px; background: var(--surface-alt);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  text-decoration: none; color: var(--text); transition: border-color .15s;
+}
+.photo-card:hover { border-color: var(--accent); }
+.photo-card .pc-title { font-weight: 600; font-size: 13.5px; margin-bottom: 3px; color: var(--accent); }
+.photo-card .pc-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+#ref-bar {
+  display: flex; align-items: center; gap: 10px; padding: 5px 14px;
+  border-top: 1px solid var(--border); font-size: 11.5px; flex-shrink: 0;
+  min-height: 28px;
+}
+#ref-bar .coord-val { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--text); }
+#ref-bar a, #ref-bar button {
+  font: inherit; font-size: 11.5px; font-weight: 500; color: var(--accent);
+  text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
+}
+#ref-bar a:hover, #ref-bar button:hover { text-decoration: underline; }
+#ref-bar .sep { color: var(--border); }
+
+/* Split handle */
+#split-handle {
+  height: 4px; background: var(--border); cursor: row-resize; flex-shrink: 0;
+  transition: background .15s;
+}
+#split-handle:hover { background: var(--accent); }
+
+/* Form panel (bottom) */
+#form-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 
 /* Form scroll */
 #fscroll {
@@ -267,65 +338,7 @@ select {
 #sbar.saving { color: var(--warning); }
 #sbar.saved { color: var(--success); }
 
-/* ── Map Panel ──────────────────────────── */
-#mappanel {
-  width: 380px; min-width: 380px; background: var(--surface);
-  border-left: 1px solid var(--border);
-  display: flex; flex-direction: column; overflow: hidden;
-}
-.map-hdr {
-  padding: 10px 14px; font-size: 12px; font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-muted); letter-spacing: .02em;
-  text-transform: uppercase;
-}
-.map-search {
-  display: flex; gap: 0; padding: 8px 10px; border-bottom: 1px solid var(--border);
-}
-.map-search input {
-  flex: 1; font: inherit; font-size: 13px; padding: 7px 10px;
-  border: 1px solid var(--input-border); border-radius: var(--radius) 0 0 var(--radius);
-  background: var(--input-bg); color: var(--text); border-right: none;
-}
-.map-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); z-index: 1; }
-.map-search button {
-  font: inherit; font-size: 12.5px; font-weight: 500; padding: 7px 14px;
-  background: var(--accent); color: #fff; border: none;
-  border-radius: 0 var(--radius) var(--radius) 0; cursor: pointer;
-}
-.map-search button:hover { background: var(--accent-hover); }
-#mapframe {
-  flex: 1; min-height: 300px;
-  background: var(--surface-alt);
-  position: relative;
-}
-.map-hint {
-  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-  background: var(--text); color: var(--bg); font-size: 11.5px;
-  padding: 5px 12px; border-radius: 4px; z-index: 1000;
-  pointer-events: none; opacity: .9; white-space: nowrap;
-}
-.map-links {
-  padding: 8px 14px; border-top: 1px solid var(--border);
-  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
-}
-.map-links a, .map-links button {
-  font: inherit; font-size: 12px; font-weight: 500; color: var(--accent);
-  text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;
-}
-.map-links a:hover, .map-links button:hover { text-decoration: underline; }
-.map-links .sep { color: var(--border); }
-.map-coords {
-  padding: 5px 14px; font-size: 11.5px; color: var(--text-muted);
-  font-variant-numeric: tabular-nums; border-top: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px;
-}
-.map-coords .coord-val { font-weight: 500; color: var(--text); }
-.map-empty {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  padding: 20px; text-align: center; color: var(--text-muted); font-size: 12.5px;
-  line-height: 1.6;
-}
+/* (map panel styles moved into ref-panel above) */
 
 /* ── Mobile header (hidden on desktop) ── */
 #mob-hdr { display: none; }
@@ -339,10 +352,6 @@ select {
 
 /* ── Map toggle (mobile) ────────────────── */
 #map-toggle { display: none; }
-
-@media (max-width: 900px) {
-  #mappanel { width: 320px; min-width: 320px; }
-}
 
 @media (max-width: 768px) {
   /* Mobile header */
@@ -366,25 +375,12 @@ select {
   #sidebar {
     position: fixed; left: -280px; top: 0; bottom: 0;
     width: 280px; min-width: 280px; z-index: 100;
-    transition: left .25s ease;
-    box-shadow: none;
+    transition: left .25s ease; box-shadow: none;
   }
   #sidebar.open { left: 0; box-shadow: 4px 0 20px rgba(0,0,0,.15); }
-
-  /* Main takes full width */
   #main { width: 100%; }
 
-  /* Map panel hidden by default, collapsible at top */
-  #mappanel {
-    position: fixed; top: 0; right: -100%; width: 100%; height: 100%;
-    min-width: 0; z-index: 100; transition: right .25s ease;
-  }
-  #mappanel.open { right: 0; }
-  #mappanel .map-hdr {
-    display: flex; align-items: center; justify-content: space-between;
-  }
-
-  /* Map toggle button */
+  /* Ref panel toggle */
   #map-toggle {
     display: inline-flex; align-items: center; gap: 4px;
     font: inherit; font-size: 11px; font-weight: 500;
@@ -392,13 +388,15 @@ select {
     background: var(--accent-soft); color: var(--accent);
     border: 1px solid var(--accent); cursor: pointer;
   }
+  #ref-panel { height: auto; min-height: 0; max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+  #ref-panel.mob-open { max-height: 50vh; min-height: 200px; }
+  .ref-search { display: none; }
+  #ref-photos { padding: 12px; }
 
   /* Form adjustments */
   #fscroll { padding: 16px; }
   .fgrid { grid-template-columns: 1fr; gap: 12px; }
   .sec-title { font-size: 17px; }
-
-  /* Bigger touch targets */
   .rg label, .rtg button { padding: 8px 6px; font-size: 12.5px; }
   .ug button { width: 36px; padding: 8px 0; }
   input[type=text],input[type=number],select,textarea { font-size: 16px; padding: 10px 12px; }
@@ -407,13 +405,8 @@ select {
   .cbg { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .cbg label { padding: 8px 6px; font-size: 13px; }
   .cbg input[type=checkbox] { width: 18px; height: 18px; }
-
-  /* Nav buttons stack better */
   .nav { flex-wrap: wrap; gap: 8px; }
   .nav .btn { flex: 1; min-width: 100px; }
-
-  /* Empty state */
-  #empty { padding: 20px; text-align: center; }
 }
 
 @media (max-width: 400px) {
@@ -458,21 +451,40 @@ select {
       </div>
     </div>
     <div id="fview">
-      <nav id="tabs"></nav>
       <div id="content">
-        <div id="fscroll"></div>
-        <div id="mappanel">
-          <div class="map-hdr"><span>Click map to select building</span><button onclick="toggleMap()" style="display:none;font:inherit;background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0" id="map-close">&times;</button></div>
-          <div class="map-search">
-            <input type="text" id="addr-search" placeholder="Search address..." onkeydown="if(event.key==='Enter')searchAddr()">
-            <button onclick="searchAddr()">Go</button>
+        <div id="ref-panel">
+          <div id="ref-tabs">
+            <button class="rtab on" data-pane="map" onclick="switchRefTab('map')">Satellite Map</button>
+            <button class="rtab" data-pane="sv" onclick="switchRefTab('sv')">Street View</button>
+            <button class="rtab" data-pane="photos" onclick="switchRefTab('photos')">Photos / Files</button>
+            <div class="ref-search">
+              <input type="text" id="addr-search" placeholder="Search address..." onkeydown="if(event.key==='Enter')searchAddr()">
+              <button onclick="searchAddr()">Go</button>
+            </div>
           </div>
-          <div id="mapframe"></div>
-          <div id="maplinks" class="map-links"></div>
-          <div id="mapcoords" class="map-coords" hidden></div>
+          <div id="ref-content">
+            <div id="ref-map" class="ref-pane on"></div>
+            <div id="ref-sv" class="ref-pane"></div>
+            <div id="ref-photos" class="ref-pane">
+              <a class="photo-card" href="https://drive.google.com/drive/folders/1zgtlH_YL2T_FoBEav0Nwljsfnz9cPnrb" target="_blank" rel="noopener">
+                <div class="pc-title">Social Media Videos &amp; Photos</div>
+                <div class="pc-desc">Aftermath photos, aerial drone videos, before/after comparisons from social media sources</div>
+              </a>
+              <a class="photo-card" href="https://pennstateoffice365-my.sharepoint.com/:f:/g/personal/rjn5308_psu_edu/IgBsoVU8H1ZuTZ3tL1sEHN2jAQl0nOdPeb1RLnbQc4CdqHk?e=Kj0vXE" target="_blank" rel="noopener">
+                <div class="pc-title">Reference Photo Links (OneDrive)</div>
+                <div class="pc-desc">Overall building reference photos organized by location — includes Archive, Reference_Overall_Photo_Links, and Relevant_Links</div>
+              </a>
+            </div>
+          </div>
+          <div id="ref-bar"></div>
+        </div>
+        <div id="split-handle"></div>
+        <div id="form-panel">
+          <nav id="tabs"></nav>
+          <div id="fscroll"></div>
+          <div id="sbar"></div>
         </div>
       </div>
-      <div id="sbar"></div>
     </div>
   </main>
 </div>
@@ -810,7 +822,7 @@ let tileMode = "satellite";
 
 function initMap() {
   if (leafMap) return;
-  leafMap = L.map("mapframe", { zoomControl: true }).setView(STL_CENTER, 17);
+  leafMap = L.map("ref-map", { zoomControl: true }).setView(STL_CENTER, 17);
   currentTileLayer = L.tileLayer(TILES[tileMode].url, {
     maxZoom: 20, attribution: TILES[tileMode].attr
   }).addTo(leafMap);
@@ -823,7 +835,7 @@ function initMap() {
     updateMapUI();
     renderForm();
   });
-  updateMapLinks();
+  updateMapUI();
 }
 
 function switchTiles() {
@@ -832,7 +844,7 @@ function switchTiles() {
   currentTileLayer = L.tileLayer(TILES[tileMode].url, {
     maxZoom: 20, attribution: TILES[tileMode].attr
   }).addTo(leafMap);
-  updateMapLinks();
+  updateMapUI();
 }
 
 function placeMarker(lat, lon) {
@@ -840,34 +852,26 @@ function placeMarker(lat, lon) {
   leafMarker = L.marker([lat, lon]).addTo(leafMap);
 }
 
-function updateMapLinks() {
-  const lat = fd.latitude, lon = fd.longitude;
-  const links = document.getElementById("maplinks");
-  let html = '<button onclick="switchTiles()">' + (tileMode === "satellite" ? "Street Map" : "Satellite") + '</button>';
+function updateMapUI() {
+  var lat = fd.latitude, lon = fd.longitude;
+  var bar = document.getElementById("ref-bar");
+  if (!bar) return;
+  var html = '<button onclick="switchTiles()">' + (tileMode === "satellite" ? "Street Map" : "Satellite") + '</button>';
   if (lat && lon) {
+    html += '<span class="sep">|</span>';
+    html += '<span class="coord-val">' + lat + ', ' + lon + '</span>';
     html += '<span class="sep">|</span>';
     html += '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + ',' + lon + '" target="_blank" rel="noopener">Street View</a>';
     html += '<a href="https://earth.google.com/web/@' + lat + ',' + lon + ',0a,200d,35y,0h,0t,0r" target="_blank" rel="noopener">Google Earth</a>';
   }
-  links.innerHTML = html;
-}
-
-function updateMapUI() {
-  const lat = fd.latitude, lon = fd.longitude;
-  const coords = document.getElementById("mapcoords");
-  if (lat && lon) {
-    coords.hidden = false;
-    coords.innerHTML = '<span class="coord-val">' + lat + ', ' + lon + '</span>';
-  } else {
-    coords.hidden = true;
-  }
-  updateMapLinks();
+  bar.innerHTML = html;
+  updateStreetView();
 }
 
 function searchAddr() {
   var q = document.getElementById("addr-search").value.trim();
   if (!q) return;
-  var btn = document.querySelector(".map-search button");
+  var btn = document.querySelector(".ref-search button");
   btn.textContent = "...";
   fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(q) + "&format=json&limit=1", {
     headers: {"Accept": "application/json"}
@@ -893,6 +897,40 @@ function searchAddr() {
     }
   })
   .catch(function() { btn.textContent = "Go"; alert("Search failed. Check your connection."); });
+}
+
+// ── Reference panel tab switching ────────────────────────────────────
+var curRefTab = "map";
+
+function switchRefTab(pane) {
+  curRefTab = pane;
+  document.querySelectorAll(".rtab").forEach(function(t) {
+    t.classList.toggle("on", t.dataset.pane === pane);
+  });
+  document.querySelectorAll(".ref-pane").forEach(function(p) {
+    p.classList.remove("on");
+  });
+  var target = document.getElementById("ref-" + pane);
+  if (target) target.classList.add("on");
+  if (pane === "map" && leafMap) {
+    setTimeout(function() { leafMap.invalidateSize(); }, 50);
+  }
+  if (pane === "sv") updateStreetView();
+}
+
+function updateStreetView() {
+  var el = document.getElementById("ref-sv");
+  if (!el) return;
+  var lat = fd.latitude, lon = fd.longitude;
+  if (lat && lon) {
+    var src = "https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d200!2d" + lon + "!3d" + lat + "!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2sus";
+    var existing = el.querySelector("iframe");
+    if (!existing || existing.src !== src) {
+      el.innerHTML = '<iframe src="' + src + '" allowfullscreen loading="lazy"></iframe>';
+    }
+  } else {
+    el.innerHTML = '<div class="sv-empty">Enter coordinates or click the satellite map to load Street View</div>';
+  }
 }
 
 function renderMap() {
@@ -1035,7 +1073,8 @@ function closeSidebar() {
   document.getElementById("overlay").classList.remove("on");
 }
 function toggleMap() {
-  document.getElementById("mappanel").classList.toggle("open");
+  document.getElementById("ref-panel").classList.toggle("mob-open");
+  if (leafMap) setTimeout(function(){ leafMap.invalidateSize(); }, 350);
 }
 function updateMobTitle() {
   const el = document.getElementById("mob-title");
@@ -1046,14 +1085,37 @@ function updateMobTitle() {
   }
 }
 
-// Show/hide map close button on mobile
+// ── Split handle drag ──────────────────────────────────────────────
+(function() {
+  var handle = document.getElementById("split-handle");
+  if (!handle) return;
+  var dragging = false, startY, startH;
+  handle.addEventListener("mousedown", function(e) {
+    dragging = true; startY = e.clientY;
+    var rp = document.getElementById("ref-panel");
+    startH = rp.offsetHeight;
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+    e.preventDefault();
+  });
+  document.addEventListener("mousemove", function(e) {
+    if (!dragging) return;
+    var rp = document.getElementById("ref-panel");
+    var newH = startH + (e.clientY - startY);
+    newH = Math.max(120, Math.min(newH, window.innerHeight * 0.75));
+    rp.style.height = newH + "px";
+    if (leafMap) leafMap.invalidateSize();
+  });
+  document.addEventListener("mouseup", function() {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    if (leafMap) leafMap.invalidateSize();
+  });
+})();
+
 const mq = window.matchMedia("(max-width: 768px)");
-function onMqChange(e) {
-  const mc = document.getElementById("map-close");
-  if (mc) mc.style.display = e.matches ? "block" : "none";
-}
-mq.addEventListener("change", onMqChange);
-onMqChange(mq);
 
 // Patch selBld to close sidebar on mobile and update mobile title
 const _origSelBld = selBld;
