@@ -388,10 +388,18 @@ select {
     background: var(--accent-soft); color: var(--accent);
     border: 1px solid var(--accent); cursor: pointer;
   }
-  #ref-panel { height: auto; min-height: 0; max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-  #ref-panel.mob-open { max-height: 50vh; min-height: 200px; }
+  #ref-panel { height: auto; min-height: 0; max-height: 0; overflow: hidden; transition: max-height .3s ease; flex-shrink: 0; }
+  #ref-panel.mob-open { max-height: 45vh; min-height: 180px; }
+  #split-handle { display: none; }
   .ref-search { display: none; }
   #ref-photos { padding: 12px; }
+  #form-panel { flex: 1; min-height: 0; }
+  #content { flex: 1; min-height: 0; }
+
+  /* Landing map needs height on mobile */
+  #empty { flex: 1; min-height: 0; }
+  #landing-map { flex: 1; min-height: 200px; }
+  #landing-legend { flex-wrap: wrap; gap: 8px; padding: 6px 12px; font-size: 11px; }
 
   /* Form adjustments */
   #fscroll { padding: 16px; }
@@ -1073,7 +1081,10 @@ function closeSidebar() {
   document.getElementById("overlay").classList.remove("on");
 }
 function toggleMap() {
-  document.getElementById("ref-panel").classList.toggle("mob-open");
+  var rp = document.getElementById("ref-panel");
+  rp.classList.toggle("mob-open");
+  var btn = document.getElementById("map-toggle");
+  btn.textContent = rp.classList.contains("mob-open") ? "Hide" : "Map";
   if (leafMap) setTimeout(function(){ leafMap.invalidateSize(); }, 350);
 }
 function updateMobTitle() {
