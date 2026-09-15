@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-NTIH1LDvWjdg5ZxuvlyNNpnrJrdV2Ro"></script>
 <style>
 :root {
   --bg: #f0efeb;
@@ -205,7 +206,7 @@ button { cursor: pointer; }
 #ref-map { display: none; width: 100%; height: 100%; }
 #ref-map.on { display: block; }
 #ref-sv { align-items: center; justify-content: center; }
-#ref-sv iframe { width: 100%; height: 100%; border: 0; }
+#ref-sv .sv-pano { width: 100%; height: 100%; }
 #ref-sv .sv-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
 #ref-photos { padding: 16px; overflow-y: auto; gap: 12px; }
 .photo-card {
@@ -979,17 +980,39 @@ function switchRefTab(pane) {
   if (pane === "sv") updateStreetView();
 }
 
+var svPano = null;
+var svService = new google.maps.StreetViewService();
+
 function updateStreetView() {
   var el = document.getElementById("ref-sv");
   if (!el) return;
-  var lat = fd.latitude, lon = fd.longitude;
-  if (lat && lon) {
-    var src = "https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d200!2d" + lon + "!3d" + lat + "!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2sus";
-    var existing = el.querySelector("iframe");
-    if (!existing || existing.src !== src) {
-      el.innerHTML = '<iframe src="' + src + '" allowfullscreen loading="lazy"></iframe>';
-    }
+  var lat = parseFloat(fd.latitude), lon = parseFloat(fd.longitude);
+  if (!isNaN(lat) && !isNaN(lon)) {
+    var pos = new google.maps.LatLng(lat, lon);
+    svService.getPanorama({ location: pos, radius: 100 }, function(data, status) {
+      if (status === google.maps.StreetViewStatus.OK) {
+        if (!svPano) {
+          var div = el.querySelector(".sv-pano");
+          if (!div) {
+            el.innerHTML = '<div class="sv-pano"></div>';
+            div = el.querySelector(".sv-pano");
+          }
+          svPano = new google.maps.StreetViewPanorama(div, {
+            position: data.location.latLng,
+            pov: { heading: 0, pitch: 0 },
+            zoom: 1,
+            motionTracking: false
+          });
+        } else {
+          svPano.setPosition(data.location.latLng);
+        }
+      } else {
+        svPano = null;
+        el.innerHTML = '<div class="sv-empty">No Street View available at this location</div>';
+      }
+    });
   } else {
+    svPano = null;
     el.innerHTML = '<div class="sv-empty">Enter coordinates or click the satellite map to load Street View</div>';
   }
 }
