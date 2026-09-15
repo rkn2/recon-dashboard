@@ -1001,7 +1001,8 @@ function updateStreetView() {
             position: data.location.latLng,
             pov: { heading: 0, pitch: 0 },
             zoom: 1,
-            motionTracking: false
+            motionTracking: false,
+            imageDateControl: true
           });
         } else {
           svPano.setPosition(data.location.latLng);
