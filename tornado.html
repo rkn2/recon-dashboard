@@ -208,6 +208,42 @@ button { cursor: pointer; }
 #ref-sv { align-items: center; justify-content: center; }
 #ref-sv .sv-pano { width: 100%; height: 100%; }
 #ref-sv .sv-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
+#ref-bldphotos { padding: 12px; overflow-y: auto; }
+#ref-bldphotos .bp-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
+#ref-bldphotos .bp-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+#ref-bldphotos .bp-count { font-size: 11.5px; color: var(--text-muted); }
+#ref-bldphotos .bp-link {
+  font-size: 11.5px; font-weight: 500; color: var(--accent); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 3px; margin-left: auto;
+}
+#ref-bldphotos .bp-link:hover { text-decoration: underline; }
+#ref-bldphotos .bp-group-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: .04em;
+  text-transform: uppercase; margin: 10px 0 6px; padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+#ref-bldphotos .bp-group-label:first-of-type { margin-top: 0; }
+#ref-bldphotos .bp-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+#ref-bldphotos .bp-single { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; max-width: 50%; }
+#ref-bldphotos .bp-card {
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; cursor: pointer; transition: border-color .15s;
+}
+#ref-bldphotos .bp-card:hover { border-color: var(--accent); }
+#ref-bldphotos .bp-thumb {
+  width: 100%; aspect-ratio: 4/3; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+}
+#ref-bldphotos .bp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+#ref-bldphotos .bp-badge {
+  position: absolute; top: 4px; right: 4px; font-size: 9.5px; font-weight: 600;
+  letter-spacing: .03em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px;
+}
+#ref-bldphotos .bp-badge.before { background: var(--accent-soft); color: var(--accent); }
+#ref-bldphotos .bp-badge.after { background: #f5ddd9; color: var(--danger); }
+@media (prefers-color-scheme: dark) { #ref-bldphotos .bp-badge.after { background: #3a2220; color: var(--danger); } }
+#ref-bldphotos .bp-label { padding: 4px 6px; font-size: 11px; font-weight: 500; }
+#ref-bldphotos .bp-placeholder { color: var(--text-muted); font-size: 10px; text-align: center; }
 #ref-photos { padding: 16px; overflow-y: auto; gap: 12px; }
 .photo-card {
   display: block; padding: 14px 16px; background: var(--surface-alt);
@@ -466,7 +502,8 @@ select {
           <div id="ref-tabs">
             <button class="rtab on" data-pane="map" onclick="switchRefTab('map')">Satellite Map</button>
             <button class="rtab" data-pane="sv" onclick="switchRefTab('sv')">Street View</button>
-            <button class="rtab" data-pane="photos" onclick="switchRefTab('photos')">Photos / Files</button>
+            <button class="rtab" data-pane="bldphotos" onclick="switchRefTab('bldphotos')">Building Photos</button>
+            <button class="rtab" data-pane="photos" onclick="switchRefTab('photos')">Links / Files</button>
             <div class="ref-search">
               <input type="text" id="addr-search" placeholder="Search address..." onkeydown="if(event.key==='Enter')searchAddr()">
               <button onclick="searchAddr()">Go</button>
@@ -475,6 +512,7 @@ select {
           <div id="ref-content">
             <div id="ref-map" class="ref-pane on"></div>
             <div id="ref-sv" class="ref-pane"></div>
+            <div id="ref-bldphotos" class="ref-pane"></div>
             <div id="ref-photos" class="ref-pane">
               <a class="photo-card" href="https://drive.google.com/drive/folders/1zgtlH_YL2T_FoBEav0Nwljsfnz9cPnrb" target="_blank" rel="noopener">
                 <div class="pc-title">Social Media Videos &amp; Photos</div>
@@ -499,6 +537,7 @@ select {
   </main>
 </div>
 
+<script src="photo-manifest.js"></script>
 <script>
 // ── SCHEMA ──────────────────────────────────────────────────────────
 const S = {
@@ -927,6 +966,7 @@ function updateMapUI() {
   }
   bar.innerHTML = html;
   updateStreetView();
+  if (curRefTab === "bldphotos") updateBuildingPhotos();
 }
 
 function searchAddr() {
@@ -977,6 +1017,7 @@ function switchRefTab(pane) {
     setTimeout(function() { leafMap.invalidateSize(); }, 50);
   }
   if (pane === "sv") updateStreetView();
+  if (pane === "bldphotos") updateBuildingPhotos();
 }
 
 var svPano = null;
@@ -1014,6 +1055,99 @@ function updateStreetView() {
     svPano = null;
     el.innerHTML = '<div class="sv-empty">Enter coordinates or click the satellite map to load Street View</div>';
   }
+}
+
+// ── Building Photos ─────────────────────────────────────────────────
+var ADDR_SUFFIXES = {drive:'dr',dr:'dr',place:'pl',pl:'pl',lane:'ln',ln:'ln',
+  terrace:'ter',ter:'ter',avenue:'ave',ave:'ave',court:'ct',ct:'ct',
+  road:'rd',rd:'rd',street:'st',st:'st',boulevard:'blvd',blvd:'blvd',
+  way:'way',circle:'cir',cir:'cir'};
+
+function normalizeAddr(addr) {
+  if (!addr) return '';
+  var parts = addr.toLowerCase().trim().split(',')[0].trim().split(/\s+/);
+  var nums = [], rest = [];
+  for (var i = 0; i < parts.length; i++) {
+    if (/^\d+$/.test(parts[i]) && rest.length === 0) nums.push(parts[i]);
+    else rest.push(parts[i]);
+  }
+  if (rest.length > 0) {
+    var last = rest[rest.length - 1].replace(/\.$/, '');
+    if (ADDR_SUFFIXES[last]) rest[rest.length - 1] = ADDR_SUFFIXES[last];
+  }
+  return nums.join(' ') + ' ' + rest.join(' ');
+}
+
+function updateBuildingPhotos() {
+  var el = document.getElementById("ref-bldphotos");
+  if (!el) return;
+  if (typeof PHOTO_MANIFEST === 'undefined') {
+    el.innerHTML = '<div class="bp-empty">Photo manifest not loaded</div>';
+    return;
+  }
+  var addr = fd.complete_address || '';
+  var key = normalizeAddr(addr);
+  var entry = PHOTO_MANIFEST[key];
+  if (!entry) {
+    el.innerHTML = '<div class="bp-empty">No photos matched for this address' +
+      (addr ? '<br><span style="font-size:11px;opacity:.7">' + addr + '</span>' : '') + '</div>';
+    return;
+  }
+  var photos = entry.photos;
+  var folder = entry.folder;
+  var onedrive = 'https://pennstateoffice365-my.sharepoint.com/personal/rjn5308_psu_edu/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Frjn5308%5Fpsu%5Fedu%2FDocuments%2Fstudents%2Fundergrads%2FtornadoREUs%2F2025stlouis%2FReference%5FOverall%5FPhoto%5FLinks%2FStLouis%5F2025%5FTornado%5FPhotos%2F' + encodeURIComponent(folder);
+
+  // Group by view
+  var views = ['Aerial', 'Front', 'Back', 'Left', 'Right', 'Other'];
+  var grouped = {};
+  views.forEach(function(v) { grouped[v] = { before: null, after: null }; });
+  photos.forEach(function(p) {
+    var v = p.view;
+    if (!grouped[v]) grouped[v] = { before: null, after: null };
+    grouped[v][p.time] = p;
+  });
+
+  var html = '<div class="bp-bar">';
+  html += '<span class="bp-count">' + photos.length + ' photo' + (photos.length !== 1 ? 's' : '') + '</span>';
+  html += '<a class="bp-link" href="' + onedrive + '" target="_blank" rel="noopener">Open in OneDrive &#8599;</a>';
+  html += '</div>';
+
+  views.forEach(function(v) {
+    var g = grouped[v];
+    if (!g || (!g.before && !g.after)) return;
+    html += '<div class="bp-group-label">' + v;
+    if (g.before && g.after) html += ' &mdash; before &amp; after';
+    else if (g.before) html += ' &mdash; before';
+    else html += ' &mdash; after';
+    html += '</div>';
+
+    if (g.before && g.after) {
+      html += '<div class="bp-pair">';
+      html += buildPhotoCard(g.before);
+      html += buildPhotoCard(g.after);
+      html += '</div>';
+    } else {
+      html += '<div class="bp-single">';
+      html += buildPhotoCard(g.before || g.after);
+      html += '</div>';
+    }
+  });
+
+  el.innerHTML = html;
+}
+
+function buildPhotoCard(p) {
+  var badge = p.time === 'after'
+    ? '<span class="bp-badge after">After</span>'
+    : '<span class="bp-badge before">Before</span>';
+  var thumbSrc = 'thumbs/' + encodeURIComponent(p.file.replace(/\.png$/i, '.jpg'));
+  return '<div class="bp-card">' +
+    '<div class="bp-thumb">' +
+      '<img src="' + thumbSrc + '" alt="' + p.view + ' ' + p.time + '" onerror="this.parentNode.innerHTML=\'<div class=bp-placeholder>' + p.file + '</div>\'">' +
+      badge +
+    '</div>' +
+    '<div class="bp-label">' + p.view + ' &mdash; ' + p.time + '</div>' +
+  '</div>';
 }
 
 function renderMap() {
