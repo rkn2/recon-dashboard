@@ -1140,13 +1140,13 @@ function buildPhotoCard(p) {
   var badge = p.time === 'after'
     ? '<span class="bp-badge after">After</span>'
     : '<span class="bp-badge before">Before</span>';
-  var thumbSrc = 'thumbs/' + encodeURIComponent(p.file.replace(/\.png$/i, '.jpg'));
+  var icon = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="opacity:.3">' +
+    '<rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>' +
+    '<circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>' +
+    '<path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   return '<div class="bp-card">' +
-    '<div class="bp-thumb">' +
-      '<img src="' + thumbSrc + '" alt="' + p.view + ' ' + p.time + '" onerror="this.parentNode.innerHTML=\'<div class=bp-placeholder>' + p.file + '</div>\'">' +
-      badge +
-    '</div>' +
-    '<div class="bp-label">' + p.view + ' &mdash; ' + p.time + '</div>' +
+    '<div class="bp-thumb">' + icon + badge + '</div>' +
+    '<div class="bp-label">' + p.view + ' — ' + p.time + '</div>' +
   '</div>';
 }
 
