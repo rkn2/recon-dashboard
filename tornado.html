@@ -780,11 +780,9 @@ function secProg(sec) {
 function renderList() {
   const el = document.getElementById("blist");
   if (!blds.length) { el.innerHTML = '<div style="padding:16px 14px;color:var(--text-muted);font-size:12px">No buildings yet.</div>'; return; }
-  const totalF = S.sections.reduce((s,sec) => s+sec.f.length, 0);
   el.innerHTML = blds.map(b => {
-    let n=0; for(const sec of S.sections) for(const f of sec.f) { if(b[f.k]!==undefined&&b[f.k]!==""&&b[f.k]!==null) n++; }
-    const p = n/totalF;
-    const dc = p > .7 ? "hi" : p > .1 ? "mid" : "lo";
+    const st = b.status_u || b.damage_status || "";
+    const dc = st ? "hi" : "lo";
     return `<div class="bld-item ${b._id===curId?'active':''}" data-id="${b._id}">
       <span class="n">${e(b.sno)}</span><span class="a">${e(lbl(b))}</span><span class="dot ${dc}"></span><button class="del-x" data-did="${b._id}" title="Delete">&times;</button></div>`;
   }).join("");
@@ -1231,18 +1229,10 @@ function initLandingMap(){
   landingMap=L.map("landing-map",{zoomControl:true}).setView(STL_CENTER,15);
   L.tileLayer(TILES.satellite.url,{maxZoom:20,attribution:TILES.satellite.attr}).addTo(landingMap);
 
-  var totalF = S.sections.reduce(function(s,sec){return s+sec.f.length;},0);
   blds.forEach(function(b){
     if(!b.latitude||!b.longitude) return;
-    var n=0;
-    for(var si=0;si<S.sections.length;si++){
-      for(var fi=0;fi<S.sections[si].f.length;fi++){
-        var v=b[S.sections[si].f[fi].k];
-        if(v!==undefined&&v!==""&&v!==null) n++;
-      }
-    }
-    var p=n/totalF;
-    var color=p>0.1?"#3a7a4f":"#d4a04a";
+    var st = b.status_u || b.damage_status || "";
+    var color = st ? "#3a7a4f" : "#d4a04a";
     var c=L.circleMarker([b.latitude,b.longitude],{
       radius:5, fillColor:color, color:"#fff", weight:1, fillOpacity:.85
     }).addTo(landingMap);
