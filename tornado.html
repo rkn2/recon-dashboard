@@ -923,7 +923,8 @@ function updateMapUI() {
     html += '<span class="sep">|</span>';
     html += '<span class="coord-val">' + lat + ', ' + lon + '</span>';
     html += '<span class="sep">|</span>';
-    html += '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + ',' + lon + '" target="_blank" rel="noopener">Street View</a>';
+    html += '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + ',' + lon + '" target="_blank" rel="noopener">Street View (with time slider)</a>';
+    html += '<span class="sep">|</span>';
     html += '<a href="https://earth.google.com/web/@' + lat + ',' + lon + ',0a,200d,35y,0h,0t,0r" target="_blank" rel="noopener">Google Earth</a>';
   }
   bar.innerHTML = html;
@@ -1001,8 +1002,7 @@ function updateStreetView() {
             position: data.location.latLng,
             pov: { heading: 0, pitch: 0 },
             zoom: 1,
-            motionTracking: false,
-            imageDateControl: true
+            motionTracking: false
           });
         } else {
           svPano.setPosition(data.location.latLng);
