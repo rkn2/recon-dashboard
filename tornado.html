@@ -375,6 +375,7 @@ select {
 }
 #sbar.saving { color: var(--warning); }
 #sbar.saved { color: var(--success); }
+#sbar.err { color: var(--danger, #c0392b); white-space: normal; }
 
 /* (map panel styles moved into ref-panel above) */
 
@@ -747,13 +748,24 @@ const S = {
   exportOrder: ["S.No.","completed_by","ref# (DELETE LATER)","tornado_name","tornado_year","town","overall_photos_link","tornado_EF","tornado_start_lat","tornado_end_lat","tornado_start_long","tornado_end_long","latitude","longitude","complete_address","building_name_listing","building_name_current","archetype","located_in_historic_district","occupany_u","number_stories","year_built_u","building_area_m2","building_urban_setting","building_position_on_street","buidling_height_m","first_floor_elevation_m","front_elevation_orientation","wall_length_side","wall_length_front","wall_thickness","roof_shape_u","roof_slope_u","construction_type_u","construction_type_u_unc","mwfrs_u_wall","mwfrs_u_wall_unc","mwfrs_u_roof","mwfrs_u_roof_unc","mwfrs_u_moment_frame","mwfrs_u_unc","mwfrs_u_unc","masonry_leaves","masonry_leaves_unc","structural_wall_system_u","foundation_type_u","foundation_type_u_unc","wall_anchorage_type_u","wall_anchorage_type_u_unc","wall_substrate_u","wall_substrate_u_unc","wall_cladding_u","wall_cladding_u_unc","soffit_type_u","soffit_present_u","wall_fenesteration_per_front","wall_fenesteration_per_back","wall_fenesteration_per_right","wall_fenesteration_per_left","wall_fenestration_per_n","wall_fenestration_per_s","wall_fenestration_per_e","wall_fenestration_per_w","wall_fenesteration_protection_front","wall_fenesteration_protection_front_unc","wall_fenesteration_protection_back","wall_fenesteration_protection_back_unc","wall_fenesteration_protection_right","wall_fenesteration_protection_left","fenestration_protection_type_front","fenestration_protection_type_back","fenestration_protection_type_right","fenestration_protection_type_left","large_door_present_front","large_door_present_back","large_door_present_right","large_door_present_left","door_present_n","door_present_s","door_present_e","door_present_w","roof_system_u","roof_system_u_unc","r2wall_attachment_u","roof_substrate_type_u","roof_substrate_type_u_unc","roof_cover_u","repla","overhang_length_u","parapet_height_m","retrofit_year_u","retrofit_present_u","retrofit_type_u","retrofit_type_unc_u","hazards_present_u","status_u","wind_damage_rating_u","damage_indicator_u","degree_of_damage_u","wind_damage_details_u","roof_structure_damage_u","roof_structure_damage_u_per","roof_susbtrate_damage_u","roof_substrate_damage_per","foundation_failure_u","foundatio_failure_per_u","wall_structure_damage_per_front","wall_structure_damage_per_back","wall_structure_damage_per_left","wall_structure_damage_per_right","wall_structure_damage_u","wall_structure_damage_n","wall_structure_damage_s","wall_structure_damage_e","wall_structure_damage_w","wall_substrate_damage_per_front","wall_substrate_damage_per_back","wall_substrate_damage_per_right","wall_substrate_damage_per_left","wall_substrate_damage_n","wall_substrate_damage_s","wall_substrate_damage_e","wall_substrate_damage_w","wall_substrate_damage_u","wall_cladding_damage_per_front","wall_cladding_damage_per_back","wall_cladding_damage_per_right","wall_cladding_damage_per_left","wall_cladding_damage_n","wall_cladding_damage_s","wall_cladding_damage_e","wall_cladding_damage_w","damaged_fenesteration_per_front","damaged_fenesteration_per_back","damaged_fenesteration_per_right","damaged_fenesteration_per_left","wall_fenestration_damage_per_n","wall_fenestration_damage_per_s","wall_fenestration_damage_per_e","wall_fenestration_damage_per_w","soffit_damage_per_u","fascia_damage_per_u","piles_damage_u","foundation_damage_cause_u","foundation_damage_u","foundation_damage_u_per","risk_category_16","building_low_rise","overall_photos_front","overall_photos_back","overall_photos_left","overall_photos_right","detailed_photos_front","detailed_photos_back","detailed_photos_left","detailed_photos_right","elevations_assessed_front_o","elevations_assessed_back_o","elevations_assessed_left_o","elevations_assessed_right_o","address_suite","address_locality","address_postal_code","address_country","occupancy_o","year_built_o","understory_pct_of_building_footprint","roof_shape_o","roof_slope_o","construction_type_o","mwfrs_o","structural_wall_system_o","foundation_type_o","wall_anchorage_type_o","wall_substrate_o","wall_cladding_o","soffit_type_o","wall_fenesteration_protection_right_unc","wall_fenesteration_protection_left_unc","fenestration_protection_type_unc","fenesteration_ratio_o","large_door_opening_type_","opening_type","roof_system_o","r2wall_attachment_o","r2wall_attachment_type_unc","roof_substrate_type_o","roof_cover_o","overhang_length_o","secondary_water_barrier_o","secondary_water_barrier_u","retrofit_type_1_o","retrofit_type_1_u","retrofit_type_2_o","reotrofit_2_u","retrofit_year_o","hazards_present_o","status_o","wind_damage_rating_o","overall_damage_notes_o","surge_damage_rating_o","surge_damage_rating_u","rainwater_ingress_damage_rating_o","rainwater_ingress_damage_rating_u","damage_indicator_o","degree_of_damage_o","wind_damage_details_o","roof_structure_damage_o","roof_susbtrate_damage_o","foundation_failure_o","wall_structure_damage_o","wall_substrate_damage_o","wall_cladding_damage_o","wall_cladding_damage_level_u"," stories_with_damage_o"," stories_with_damage_u","soffit_damage_per_o","fascia_damage_per_o","per_building_footprint_eroded_o","per_building_footprint_eroded_u","damage_understory_per_o","piles_damage_o","foundation_damage_cause_o","oop_failure_n","oop_failure_s","oop_failure_e","oop_failure_w","ip_failure_n","ip_failure_s","ip_failure_e","ip_failure_w","building_open","building_enclosed","building_regular_shape","exposure_category","building_rigid","national_register_listing_year","existed_during_tornado","buidling_use_before_tornado","buidling_use_after_tornado","buidling_use_plan_after_tornado","demolishing_year","single_unit","multiple_unit","world_heritage_property","hague_convention","sub_national_heritage _list","iucn_protected_area","property_of_local_significance","const_material_h_stone","const_material_h_brick","const_material_h_wood","const_material_h_mud","const_material_h_rf_masonry","const_material_h_rglr_stone","const_material_h_rf_conc","const_material_h_ir_stone","const_material_h_othr","const_material_v_stone","const_material_v_brick","const_material_v_wood","const_material_v_mud","const_material_v_rf_masonry","const_material_v_rglr_stone","const_material_v_rf_conc","const_material_v_ir_stone","const_material_v_othr","prop_agricultural ","prop_cave","prop_culture _entertainment_facility","prop_forest","prop_industrial_facility","prop_lake","prop_military","prop_nature","prop_religious","prop_rock formation","prop_sports_facility","prop_unilities_facility","prop_archaeological","prop_commemorative structure or landmark","prop_ecosystem","prop_habitat","prop_infrastructure","prop_law / government facility","prop_mine","prop_park / garden","prop_residential facility","prop_scenic area","prop_transportation facility","prop_volcano","prop_battlefield","prop_commercial / exchange facility","prop_educational facility","prop_health / welfare facility","prop_island(s)","prop_marine zone","prop_mountain","parking / storage facility","river catchment system","sea","underground facility","zoological park","prop_val_evidential","prop_val_historical","prop_val_aesthetic","prop_val_communal","owner_individual","owner_business","owner_government","owner_ngo","owner_religious ","owner_unknown","buidling_existed_5_yrs_before_tornado","buidling_existed_3_yrs_before_tornado","buidling_existed_1_yrs_before_tornado","building_existed_during_tornado","building_in_use_during_tornado","building_use_during_tornado","damage_status","building_demolished_1_yrs_after_tornado","building_demolished_3_yrs_after_tornado","building_demolished_5_yrs_after_tornado","notes"]
 };
 
-// ── Sync endpoint ──────────────────────────────────────────────────
-const SYNC_ENDPOINT = "https://script.google.com/macros/s/AKfycbzx2zeIQqHVSVnc4i3QdZB-Yw0klTyXQK57LX_OpK7ga86USgIlSQXc2y7KcQJmeeMwyA/exec";
+// ── OneDrive backend ───────────────────────────────────────────────
+// Entries go to the recon-entry server on the lab Mac mini, which writes
+// them into the OneDrive DataInput workbook (server/recon_entry.py).
+// API_PROD is the Tailscale funnel path to that server. ?api= overrides it for
+// local testing only (localhost), so a crafted link can't collect the lab code.
+const API_PROD = "https://becca-mcp.tail3a44c1.ts.net/recon";
+const API_BASE = (function() {
+  const o = new URLSearchParams(location.search).get("api") || "";
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(o)) return o.replace(/\/$/, "");
+  return API_PROD;
+})();
+const DATASET = "stlouis";
 
 // ── State ───────────────────────────────────────────────────────────
-const STORE_KEY = "tornado_db_buildings";
+const STORE_KEY = "tornado_db_buildings_od";
 let blds = [], curId = null, curSec = 0, fd = {};
 let saveT = null;
+let cols = null;            // column names in the workbook, from /schema
 
 function loadLocal() {
   try { blds = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch(e) { blds = []; }
@@ -764,47 +776,151 @@ function cacheLocal() {
 function loadAll() { loadLocal(); }
 function saveAll() { cacheLocal(); }
 
-function fetchFromSheets() {
-  return fetch(SYNC_ENDPOINT)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.status === "ok" && Array.isArray(data.buildings)) {
-        var totalF = S.sections.reduce(function(s,sec){return s+sec.f.length;},0);
-        blds = data.buildings.map(function(b, i) {
-          b._id = "b_" + b.building_id;
-          b.sno = b.building_id;
-          b["S.No."] = b.building_id;
-          return b;
-        });
-        cacheLocal();
-        return true;
-      }
-      return false;
-    })
-    .catch(function() { return false; });
+function labCode() {
+  let c = "";
+  try { c = localStorage.getItem("recon_lab_code") || ""; } catch(e) {}
+  if (!c) {
+    c = (prompt("Lab code (ask Becca):") || "").trim();
+    try { if (c) localStorage.setItem("recon_lab_code", c); } catch(e) {}
+  }
+  return c;
+}
+function forgetLabCode() { try { localStorage.removeItem("recon_lab_code"); } catch(e) {} }
+
+function api(method, path, body) {
+  if (!API_BASE) return Promise.reject(new Error("No server address set"));
+  return fetch(API_BASE + "/api/" + DATASET + path, {
+    method: method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Lab-Code": labCode(),
+      "X-Entered-By": document.getElementById("uname").value.trim(),
+      "ngrok-skip-browser-warning": "1"
+    },
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(r) {
+    return r.json().catch(function() { return {}; }).then(function(d) {
+      if (r.status === 401) forgetLabCode();
+      if (!r.ok) { var err = new Error(d.message || ("Server error " + r.status)); err.status = r.status; err.data = d; throw err; }
+      return d;
+    });
+  });
 }
 
-function syncToSheets(building) {
-  var payload = {};
-  for (var k in building) {
-    if (k === "_id" || k === "sno") continue;
-    payload[k] = building[k];
+function setStatus(text, cls) {
+  const sb = document.getElementById("sbar");
+  sb.textContent = text; sb.className = cls || "";
+}
+
+// Excel row -> form record. _saved is what the workbook holds, so a save
+// sends only the fields that differ from it.
+function fromRow(r) {
+  const b = {};
+  for (const k in r) b[k] = r[k];
+  b._id = "r_" + r._row;
+  b.sno = r._row;
+  b._saved = {};
+  for (const k in r) if (k[0] !== "_") b._saved[k] = r[k];
+  return b;
+}
+
+// Hide form fields that have no column in this workbook, and match keys
+// that differ only by stray spaces (e.g. "owner_religious ").
+function applySchema(columns) {
+  cols = new Set(columns);
+  S.sections.forEach(function(sec) {
+    sec.f = sec.f.filter(function(f) {
+      if (cols.has(f.k)) return true;
+      if (cols.has(f.k.trim())) { f.k = f.k.trim(); return true; }
+      return false;
+    });
+  });
+  S.sections = S.sections.filter(function(sec) { return sec.f.length; });
+  for (const k of Object.keys(S.defaults)) if (!cols.has(k)) delete S.defaults[k];
+}
+
+function fetchFromOneDrive() {
+  setStatus("Loading from OneDrive…", "saving");
+  return api("GET", "/schema").then(function(sc) {
+    applySchema(sc.columns);
+    return api("GET", "/rows");
+  }).then(function(data) {
+    const pending = blds.filter(function(b) { return b._dirty; });
+    blds = data.rows.map(fromRow);
+    // keep unsaved local edits from a previous visit
+    pending.forEach(function(p) {
+      const i = blds.findIndex(function(b) { return b._id === p._id; });
+      if (i >= 0) { Object.assign(blds[i], diffFields(p)); blds[i]._dirty = true; }
+      else if (!p._row) blds.push(p);
+    });
+    cacheLocal();
+    setStatus("", "");
+    pending.forEach(function(p) { queueSave(p._id); });
+    return true;
+  }).catch(function(err) {
+    setStatus("Can't reach OneDrive: " + err.message, "err");
+    return false;
+  });
+}
+
+function diffFields(b) {
+  const out = {}, saved = b._saved || {};
+  for (const k in b) {
+    if (k[0] === "_" || k === "sno" || k === "S.No.") continue;
+    if (cols && !cols.has(k)) continue;
+    const a = saved[k] == null ? "" : String(saved[k]);
+    const v = b[k] == null ? "" : String(b[k]);
+    if (a !== v) out[k] = b[k];
   }
-  fetch(SYNC_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.status === "ok" && data.building_id) {
-      var idx = blds.findIndex(function(b) { return b._id === building._id; });
-      if (idx >= 0 && !blds[idx].building_id) {
-        blds[idx].building_id = data.building_id;
-        blds[idx]._id = "b_" + data.building_id;
-        if (curId === building._id) curId = blds[idx]._id;
-        cacheLocal();
-      }
+  return out;
+}
+
+// One save at a time per building: each save needs the fingerprint the
+// previous one returned.
+const saveChains = {};
+function queueSave(id) {
+  saveChains[id] = (saveChains[id] || Promise.resolve()).then(function() { return saveOne(id); });
+  return saveChains[id];
+}
+
+function saveOne(id) {
+  const b = blds.find(function(x) { return x._id === id; });
+  if (!b) return;
+  const fields = diffFields(b);
+  if (!Object.keys(fields).length && b._row) { b._dirty = false; cacheLocal(); return; }
+  setStatus("Saving to OneDrive…", "saving");
+  const req = b._row ? api("PATCH", "/rows/" + b._row, { hash: b._hash, fields: fields })
+                     : api("POST", "/rows", { fields: fields });
+  return req.then(function(d) {
+    const r = d.row, wasNew = !b._row;
+    b._row = r._row; b._hash = r._hash; b._saved = {};
+    for (const k in r) if (k[0] !== "_") b._saved[k] = r[k];
+    if (wasNew) {
+      const oldId = b._id; b._id = "r_" + r._row; b.sno = r._row;
+      if (curId === oldId) { curId = b._id; fd._id = b._id; }
+      saveChains[b._id] = saveChains[oldId];
     }
-  }).catch(function() {});
+    // a newer edit may have arrived while this one was in flight
+    b._dirty = Object.keys(diffFields(b)).length > 0;
+    cacheLocal(); renderList();
+    setStatus("Saved to OneDrive", "saved");
+    setTimeout(function() { if (document.getElementById("sbar").className === "saved") setStatus("", ""); }, 1500);
+    if (b._dirty) return saveOne(b._id);
+  }).catch(function(err) {
+    if (err.status === 409 && err.data && err.data.current) {
+      const fresh = fromRow(err.data.current);
+      const i = blds.findIndex(function(x) { return x._id === b._id; });
+      if (i >= 0) blds[i] = fresh;
+      if (curId === b._id) { fd = {...fresh}; renderForm(); }
+      cacheLocal(); renderList();
+      setStatus("Not saved: someone else changed this building. Reloaded their version; please redo your last edit.", "err");
+      alert("Someone else changed this building in the spreadsheet since you opened it.\n\nThe form now shows their version. Please redo your last change.");
+      return;
+    }
+    b._dirty = true; cacheLocal();
+    setStatus("Not saved yet: " + err.message + " (will retry)", "err");
+    setTimeout(function() { queueSave(b._id); }, 30000);
+  });
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -857,41 +973,29 @@ function showLanding() {
 function addBuilding() {
   const sno = blds.length + 1;
   const nm = document.getElementById("uname").value.trim();
-  const b = { _id: "b_" + Date.now(), sno, "S.No.": sno, completed_by: nm, ...S.defaults };
-  blds.push(b); cacheLocal(); syncToSheets(b); selBld(b._id);
+  const b = { _id: "new_" + Date.now(), sno: "new", completed_by: nm, ...S.defaults, _dirty: true };
+  blds.push(b); cacheLocal(); queueSave(b._id); selBld(b._id);
 }
 
+// Rows live in the OneDrive workbook; deleting is done there, not from the form.
 function delBuildingById(id) {
-  const b = blds.find(x => x._id === id);
-  if (!b || !confirm("Delete " + lbl(b) + "?")) return;
-  blds = blds.filter(x => x._id !== id); cacheLocal();
-  if (curId === id) { curId = null; fd = {}; showLanding(); }
-  renderList();
+  alert("Buildings can't be deleted from the form. Ask Becca to remove the row in the spreadsheet.");
 }
 
-function delBuilding() {
-  if (!curId || !confirm("Delete this building?")) return;
-  blds = blds.filter(b => b._id !== curId); cacheLocal();
-  curId = null; fd = {};
-  showLanding();
-  renderList();
-}
+function delBuilding() { delBuildingById(curId); }
 
 // ── Save ────────────────────────────────────────────────────────────
 function schedSave() {
   clearTimeout(saveT);
-  document.getElementById("sbar").textContent = "Saving…";
-  document.getElementById("sbar").className = "saving";
+  setStatus("Unsaved changes…", "saving");
   saveT = setTimeout(() => {
     const idx = blds.findIndex(b => b._id === curId);
     if (idx >= 0) {
-      blds[idx] = {...fd};
+      const keep = { _row: blds[idx]._row, _hash: blds[idx]._hash, _saved: blds[idx]._saved };
+      blds[idx] = {...fd, ...keep, _dirty: true};
       cacheLocal();
-      syncToSheets(blds[idx]);
+      queueSave(curId);
     }
-    const sb = document.getElementById("sbar");
-    sb.textContent = "Saved"; sb.className = "saved";
-    setTimeout(() => { sb.textContent = ""; sb.className = ""; }, 1500);
     renderList();
   }, 800);
 }
@@ -1202,7 +1306,7 @@ function renderCbSec(sec) {
     if (flds[0].t === "cb") {
       h += '<div class="cbg">';
       for (const f of flds) {
-        h += `<label><input type="checkbox" data-k="${e(f.k)}" ${fd[f.k]==="yes"?"checked":""}> ${e(f.l)}</label>`;
+        h += `<label><input type="checkbox" data-k="${e(f.k)}" ${(fd[f.k]===1||fd[f.k]==="1"||fd[f.k]==="yes")?"checked":""}> ${e(f.l)}</label>`;
       }
       h += '</div>';
     } else {
@@ -1246,7 +1350,7 @@ function bindForm() {
   const el = document.getElementById("fscroll");
   el.querySelectorAll("input[type=text],input[type=number],textarea").forEach(x => x.onchange = () => setF(x.dataset.k, x.value));
   el.querySelectorAll("select").forEach(x => x.onchange = () => setF(x.dataset.k, x.value));
-  el.querySelectorAll("input[type=checkbox]").forEach(x => x.onchange = () => setF(x.dataset.k, x.checked?"yes":"no"));
+  el.querySelectorAll("input[type=checkbox]").forEach(x => x.onchange = () => setF(x.dataset.k, x.checked?1:0));
   const p = document.getElementById("pbtn"), n = document.getElementById("nbtn"), d = document.getElementById("dbtn");
   if (p) p.onclick = () => { curSec--; renderTabs(); renderForm(); };
   if (n) n.onclick = () => { curSec++; renderTabs(); renderForm(); };
@@ -1383,10 +1487,9 @@ function initLandingMap(){
     var lat=Math.round(ev.latlng.lat*1e6)/1e6;
     var lon=Math.round(ev.latlng.lng*1e6)/1e6;
     if(confirm("Start new building at "+lat+", "+lon+"?")){
-      var sno=blds.length+1;
       var nm=document.getElementById("uname").value.trim();
-      var b={_id:"b_"+Date.now(),sno:sno,"S.No.":sno,completed_by:nm,...S.defaults,latitude:lat,longitude:lon};
-      blds.push(b);cacheLocal();syncToSheets(b);selBld(b._id);
+      var b={_id:"new_"+Date.now(),sno:"new",completed_by:nm,...S.defaults,latitude:lat,longitude:lon,_dirty:true};
+      blds.push(b);cacheLocal();queueSave(b._id);selBld(b._id);
       closeSidebar();updateMobTitle();
     }
   });
@@ -1400,7 +1503,7 @@ document.getElementById("uname").onchange = function() { try { localStorage.setI
 renderList();
 setTimeout(initLandingMap,100);
 
-fetchFromSheets().then(function(ok) {
+fetchFromOneDrive().then(function(ok) {
   if (ok) {
     renderList();
     if (landingMap) { landingMap.remove(); landingMap = null; }
