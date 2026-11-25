@@ -67,6 +67,8 @@ button { cursor: pointer; }
 #app { display: flex; height: 100vh; overflow: hidden; }
 
 /* ── Sidebar ────────────────────────────── */
+/* Keep Leaflet's own z-indexes (400-1000) inside the map so the phone sidebar (z 100) draws on top */
+.leaflet-container { z-index: 0; }
 #sidebar {
   width: 240px; min-width: 240px;
   background: var(--surface);
