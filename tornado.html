@@ -281,6 +281,8 @@ button { cursor: pointer; }
   text-decoration: none; color: var(--text); transition: border-color .15s;
 }
 .photo-card:hover { border-color: var(--accent); }
+.guide-link { color: var(--accent); text-decoration: none; }
+.guide-link:hover { text-decoration: underline; }
 .photo-card .pc-title { font-weight: 600; font-size: 13.5px; margin-bottom: 3px; color: var(--accent); }
 .photo-card .pc-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 #ref-bar {
@@ -501,7 +503,7 @@ select {
   <aside id="sidebar">
     <div class="side-hdr">
       <h1>Tornado Damage DB</h1>
-      <small>St. Louis 2025</small>
+      <small>St. Louis 2025 &middot; <a class="guide-link" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/_layouts/15/Doc.aspx?sourcedoc=%7BD6F2A759-714F-4428-A923-B9D97FD38BB5%7D&amp;file=2025_4_9_dataEntryGuide.docx&amp;action=default&amp;mobileredirect=true" target="_blank" rel="noopener">Data entry guide &#8599;</a></small>
     </div>
     <div class="user-row">
       <span style="font-weight:500">Name</span>
@@ -526,7 +528,7 @@ select {
       <button onclick="openSidebar()" aria-label="Menu">&#9776;</button>
       <div>
         <div class="mob-title" id="mob-title">Tornado Damage DB</div>
-        <div class="mob-sub">St. Louis 2025</div>
+        <div class="mob-sub">St. Louis 2025 &middot; <a class="guide-link" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/_layouts/15/Doc.aspx?sourcedoc=%7BD6F2A759-714F-4428-A923-B9D97FD38BB5%7D&amp;file=2025_4_9_dataEntryGuide.docx&amp;action=default&amp;mobileredirect=true" target="_blank" rel="noopener">Guide &#8599;</a></div>
       </div>
       <button id="map-toggle" onclick="toggleMap()">Photos &amp; map</button>
     </div>
@@ -558,6 +560,10 @@ select {
             <div id="ref-dt360" class="ref-pane"></div>
             <div id="ref-bldphotos" class="ref-pane"></div>
             <div id="ref-photos" class="ref-pane">
+              <a class="photo-card" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/_layouts/15/Doc.aspx?sourcedoc=%7BD6F2A759-714F-4428-A923-B9D97FD38BB5%7D&amp;file=2025_4_9_dataEntryGuide.docx&amp;action=default&amp;mobileredirect=true" target="_blank" rel="noopener">
+                <div class="pc-title">Data Entry Guide (Tornado REU Team)</div>
+                <div class="pc-desc">How to fill in each column, with examples, including the archetype table</div>
+              </a>
               <a class="photo-card" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/Shared%20Documents/tornadoREUs/2025stlouis/Data_Input/socialMediaVideos" target="_blank" rel="noopener">
                 <div class="pc-title">Social Media Videos &amp; Photos (Tornado REU Team)</div>
                 <div class="pc-desc">Aftermath photos, aerial drone videos, before/after comparisons from social media sources</div>
