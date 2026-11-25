@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Recon data-entry server: lets the GitHub Pages form read and write the
-OneDrive DataInput workbooks through Microsoft Graph.
+DataInput workbooks (in a Team library or Becca's OneDrive) through Microsoft Graph.
 
 Runs on the lab Mac mini under Becca's account and uses her delegated
 "E5-Nap API" token (the MSAL cache from ~/Code/admin/general/api-access).
@@ -13,7 +13,8 @@ Config (outside the repo): ~/.config/recon-entry/config.json
     "lab_code": "...",                      # students type this once in the form
     "allowed_origins": ["https://rkn2.github.io"],
     "datasets": {
-      "stlouis": {"path": "students/undergrads/.../StLouis_Tornado_DataInput.xlsx",
+      "stlouis": {"drive": "<driveId of a Team library, optional>",
+                  "path": "tornadoREUs/.../StLouis_Tornado_DataInput.xlsx",
                   "sheet": "BuidlingAttributes", "header_row": 2},
       ...
     }
@@ -133,6 +134,8 @@ class Dataset:
         self.sheet = cfg.get("sheet", "BuidlingAttributes")
         self.header_row = int(cfg.get("header_row", 1))
         self.photos = cfg.get("photos")  # OneDrive folder of per-building photo folders (optional)
+        # Optional driveId of a Team's document library; paths are then relative to that library's root.
+        self.drive = f"/drives/{cfg['drive']}" if cfg.get("drive") else "/me/drive"
         self._photo_folders = None       # (time, [names])
         self.lock = threading.Lock()  # serializes writes to this workbook
         self._item = None
@@ -142,7 +145,7 @@ class Dataset:
 
     def item_url(self):
         if self._item is None:
-            it = graph("GET", f"/me/drive/root:/{quote(self.path)}?$select=id,parentReference")
+            it = graph("GET", f"{self.drive}/root:/{quote(self.path)}?$select=id,parentReference")
             self._item = f"/drives/{it['parentReference']['driveId']}/items/{it['id']}"
         return self._item
 
@@ -309,8 +312,8 @@ def photo_folders(ds):
         raise BadRequest("no photo folder for this dataset")
     if ds._photo_folders and time.time() - ds._photo_folders[0] < 600:
         return ds._photo_folders[1]
-    root = graph("GET", f"/me/drive/root:/{quote(ds.photos)}?$select=id,webUrl")
-    names, url = [], f"/me/drive/items/{root['id']}/children?$select=name,folder&$top=999"
+    root = graph("GET", f"{ds.drive}/root:/{quote(ds.photos)}?$select=id,webUrl")
+    names, url = [], f"{ds.drive}/items/{root['id']}/children?$select=name,folder&$top=999"
     while url:
         page = graph("GET", url)
         names += [c["name"] for c in page["value"] if "folder" in c]
@@ -324,7 +327,7 @@ def photos_in(ds, folder):
     """Photos in one building folder, with short-lived thumbnail links."""
     if folder not in photo_folders(ds)["folders"]:
         raise BadRequest("unknown photo folder")
-    it = graph("GET", f"/me/drive/root:/{quote(ds.photos + '/' + folder)}:/children"
+    it = graph("GET", f"{ds.drive}/root:/{quote(ds.photos + '/' + folder)}:/children"
                       "?$select=name,webUrl,file&$expand=thumbnails&$top=200")
     out = []
     for f in it["value"]:
