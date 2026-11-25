@@ -216,6 +216,11 @@ button { cursor: pointer; }
 #ref-map { display: none; width: 100%; height: 100%; }
 #ref-map.on { display: block; }
 #ref-sv { align-items: center; justify-content: center; }
+#ref-dt360 iframe { width: 100%; flex: 1; min-height: 0; border: 0; }
+#ref-dt360 .dt-bar { width: 100%; padding: 6px 10px; font-size: 12px; color: var(--text-muted);
+  border-top: 1px solid var(--border); background: var(--surface-alt); }
+#ref-dt360 .dt-bar a { color: var(--accent); }
+#ref-dt360 .dt-empty { margin: auto; padding: 20px; text-align: center; font-size: 13px; color: var(--text-muted); max-width: 440px; }
 #ref-sv .sv-pano { width: 100%; flex: 1; min-height: 0; }
 #ref-sv .sv-bar { width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 10px;
   border-top: 1px solid var(--border); background: var(--surface-alt); font-size: 12px; color: var(--text-muted); }
@@ -536,6 +541,7 @@ select {
           <div id="ref-tabs">
             <button class="rtab on" data-pane="map" onclick="switchRefTab('map')">Satellite Map</button>
             <button class="rtab" data-pane="sv" onclick="switchRefTab('sv')">Street View</button>
+            <button class="rtab" data-pane="dt360" onclick="switchRefTab('dt360')">360° after (May 2025)</button>
             <button class="rtab" data-pane="bldphotos" onclick="switchRefTab('bldphotos')">Building Photos</button>
             <button class="rtab" data-pane="photos" onclick="switchRefTab('photos')">Links / Files</button>
             <div class="ref-search">
@@ -546,6 +552,7 @@ select {
           <div id="ref-content">
             <div id="ref-map" class="ref-pane on"></div>
             <div id="ref-sv" class="ref-pane"></div>
+            <div id="ref-dt360" class="ref-pane"></div>
             <div id="ref-bldphotos" class="ref-pane"></div>
             <div id="ref-photos" class="ref-pane">
               <a class="photo-card" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/Shared%20Documents/tornadoREUs/2025stlouis/Data_Input/socialMediaVideos" target="_blank" rel="noopener">
@@ -1168,6 +1175,7 @@ function updateMapUI() {
   bar.innerHTML = html;
   updateStreetView();
   if (curRefTab === "bldphotos") updateBuildingPhotos();
+  if (curRefTab === "dt360") updateDT360();
 }
 
 function searchAddr() {
@@ -1219,6 +1227,7 @@ function switchRefTab(pane) {
   }
   if (pane === "sv") updateStreetView();
   if (pane === "bldphotos") updateBuildingPhotos();
+  if (pane === "dt360") updateDT360();
 }
 
 var svPano = null;
@@ -1322,6 +1331,38 @@ function saveStreetView() {
   }).catch(function(err) {
     say("Couldn't save: " + err.message, "err");
   }).then(function() { btn.disabled = false; });
+}
+
+// ── 360° drive after the storm (DebrisTech, May 19–30, 2025) ────────
+var DT360_VIEWER = "https://360viewer.debristech.com/DEMO-Viewer/StLouisMOTornado25/player2/";
+var DT360_NEAR_M = 120;   // closer than this, show the viewer; farther, say so and offer the link
+var dt360Cache = {};
+function updateDT360() {
+  var el = document.getElementById("ref-dt360");
+  if (!el) return;
+  var lat = parseFloat(fd.latitude), lon = parseFloat(fd.longitude), forId = curId;
+  if (isNaN(lat) || isNaN(lon)) { el.innerHTML = '<div class="dt-empty">This building has no coordinates yet.</div>'; return; }
+  var label = (fd.complete_address || "").split(",")[0];
+  var url = DT360_VIEWER + "?v_lat=" + lat + "&v_lng=" + lon + "&v_label=" + encodeURIComponent(label);
+  var key = lat.toFixed(6) + "," + lon.toFixed(6);
+  el.innerHTML = '<div class="dt-empty">Looking for the nearest 360° frame…</div>';
+  var p = dt360Cache[key] ? Promise.resolve(dt360Cache[key]) : api("GET", "/dt360?lat=" + lat + "&lon=" + lon).then(function(d) { dt360Cache[key] = d; return d; });
+  p.then(function(d) {
+    if (curId !== forId) return;
+    var open = '<a href="' + e(url) + '" target="_blank" rel="noopener">Open full screen &#8599;</a>';
+    if (d.distance_m === null || d.distance_m > DT360_NEAR_M) {
+      el.innerHTML = '<div class="dt-empty">The 360° drive after the storm didn\'t pass near this building' +
+        (d.distance_m !== null ? ' (the closest frame is ' + d.distance_m + ' m away)' : '') +
+        '.<br><br><a href="' + e(url) + '" target="_blank" rel="noopener">Open the 360° viewer anyway &#8599;</a></div>';
+      return;
+    }
+    el.innerHTML = '<iframe src="' + e(url) + '" allow="fullscreen; clipboard-write" loading="lazy" title="360° street view after the storm"></iframe>' +
+      '<div class="dt-bar">DebrisTech 360° drive, captured ' + e(d.date || "May 2025") + ', closest frame ' + d.distance_m + ' m from the building. ' +
+      'The red marker is the building. ' + open + '</div>';
+  }).catch(function(err) {
+    if (curId !== forId) return;
+    el.innerHTML = '<div class="dt-empty">Couldn\'t check the 360° drive: ' + e(err.message) + '<br><br><a href="' + e(url) + '" target="_blank" rel="noopener">Open the 360° viewer &#8599;</a></div>';
+  });
 }
 
 // ── Building Photos ─────────────────────────────────────────────────
