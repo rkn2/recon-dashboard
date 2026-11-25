@@ -232,6 +232,7 @@ button { cursor: pointer; }
   overflow: hidden; cursor: pointer; transition: border-color .15s;
 }
 #ref-bldphotos .bp-card:hover { border-color: var(--accent); }
+#ref-bldphotos a.bp-card { display: block; color: inherit; text-decoration: none; }
 #ref-bldphotos .bp-thumb {
   width: 100%; aspect-ratio: 4/3; background: var(--bg);
   display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
@@ -517,13 +518,13 @@ select {
             <div id="ref-sv" class="ref-pane"></div>
             <div id="ref-bldphotos" class="ref-pane"></div>
             <div id="ref-photos" class="ref-pane">
-              <a class="photo-card" href="https://drive.google.com/drive/folders/1zgtlH_YL2T_FoBEav0Nwljsfnz9cPnrb" target="_blank" rel="noopener">
-                <div class="pc-title">Social Media Videos &amp; Photos</div>
+              <a class="photo-card" href="https://pennstateoffice365-my.sharepoint.com/personal/rjn5308_psu_edu/Documents/students/undergrads/tornadoREUs/2025stlouis/Data_Input/socialMediaVideos" target="_blank" rel="noopener">
+                <div class="pc-title">Social Media Videos &amp; Photos (OneDrive)</div>
                 <div class="pc-desc">Aftermath photos, aerial drone videos, before/after comparisons from social media sources</div>
               </a>
-              <a class="photo-card" href="https://pennstateoffice365-my.sharepoint.com/:f:/g/personal/rjn5308_psu_edu/IgBsoVU8H1ZuTZ3tL1sEHN2jAQl0nOdPeb1RLnbQc4CdqHk?e=Kj0vXE" target="_blank" rel="noopener">
-                <div class="pc-title">Reference Photo Links (OneDrive)</div>
-                <div class="pc-desc">Overall building reference photos organized by location — includes Archive, Reference_Overall_Photo_Links, and Relevant_Links</div>
+              <a class="photo-card" href="https://pennstateoffice365-my.sharepoint.com/personal/rjn5308_psu_edu/Documents/students/undergrads/tornadoREUs/2025stlouis/Reference_Overall_Photo_Links/StLouis_2025_Tornado_Photos" target="_blank" rel="noopener">
+                <div class="pc-title">Building Photos (OneDrive)</div>
+                <div class="pc-desc">Before and after photos for every building, one folder per address</div>
               </a>
             </div>
           </div>
@@ -1184,76 +1185,94 @@ function normalizeAddr(addr) {
   return nums.join(' ') + ' ' + rest.join(' ');
 }
 
+// Photo folders and thumbnails come from the lab server (OneDrive through Graph),
+// so the list stays current. photo-manifest.js is only a fallback for the folder names.
+var photoIndex = null;          // promise of {normalized address: folder name}
+var photoFolderUrl = "";
+var photoCache = {};            // folder -> {at, data}; thumbnail links expire, so keep 20 minutes
+function getPhotoIndex() {
+  if (photoIndex) return photoIndex;
+  photoIndex = api("GET", "/photo-folders").then(function(d) {
+    photoFolderUrl = d.webUrl || "";
+    var idx = {};
+    d.folders.forEach(function(f) { idx[normalizeAddr(f)] = f; });
+    return idx;
+  }).catch(function(err) {
+    photoIndex = null;  // try again next time
+    if (typeof PHOTO_MANIFEST === 'undefined') throw err;
+    var idx = {};
+    for (var k in PHOTO_MANIFEST) idx[k] = PHOTO_MANIFEST[k].folder;
+    return idx;
+  });
+  return photoIndex;
+}
+function getPhotos(folder) {
+  var c = photoCache[folder];
+  if (c && Date.now() - c.at < 20 * 60 * 1000) return Promise.resolve(c.data);
+  return api("GET", "/photos?folder=" + encodeURIComponent(folder)).then(function(d) {
+    photoCache[folder] = { at: Date.now(), data: d };
+    return d;
+  });
+}
+function photoKind(file) {
+  var n = file.replace(/\.[^.]+$/, '').toLowerCase(), view = 'Other';
+  ['aerial', 'front', 'back', 'left', 'right'].some(function(v) { if (n.indexOf(v) >= 0) { view = v[0].toUpperCase() + v.slice(1); return true; } });
+  return { view: view, time: n.indexOf('after') >= 0 ? 'after' : 'before' };
+}
+
 function updateBuildingPhotos() {
   var el = document.getElementById("ref-bldphotos");
   if (!el) return;
-  if (typeof PHOTO_MANIFEST === 'undefined') {
-    el.innerHTML = '<div class="bp-empty">Photo manifest not loaded</div>';
-    return;
-  }
   var addr = fd.complete_address || '';
-  var key = normalizeAddr(addr);
-  var entry = PHOTO_MANIFEST[key];
-  if (!entry) {
-    el.innerHTML = '<div class="bp-empty">No photos matched for this address' +
-      (addr ? '<br><span style="font-size:11px;opacity:.7">' + addr + '</span>' : '') + '</div>';
-    return;
-  }
-  var photos = entry.photos;
-  var folder = entry.folder;
-  var onedrive = 'https://pennstateoffice365-my.sharepoint.com/personal/rjn5308_psu_edu/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Frjn5308%5Fpsu%5Fedu%2FDocuments%2Fstudents%2Fundergrads%2FtornadoREUs%2F2025stlouis%2FReference%5FOverall%5FPhoto%5FLinks%2FStLouis%5F2025%5FTornado%5FPhotos%2F' + encodeURIComponent(folder);
+  var forId = curId;
+  el.innerHTML = '<div class="bp-empty">Loading photos…</div>';
+  getPhotoIndex().then(function(idx) {
+    var folder = idx[normalizeAddr(addr)];
+    if (!folder) {
+      el.innerHTML = '<div class="bp-empty">No photo folder matches this address' +
+        (addr ? '<br><span style="font-size:11px;opacity:.7">' + e(addr) + '</span>' : '') +
+        (photoFolderUrl ? '<br><a class="bp-link" href="' + e(photoFolderUrl) + '" target="_blank" rel="noopener">Browse all photo folders &#8599;</a>' : '') + '</div>';
+      return;
+    }
+    return getPhotos(folder).then(function(d) {
+      if (curId !== forId) return;  // student moved to another building meanwhile
+      renderPhotos(el, d);
+    });
+  }).catch(function(err) {
+    if (curId !== forId) return;
+    el.innerHTML = '<div class="bp-empty">Couldn\'t load photos: ' + e(err.message) + '</div>';
+  });
+}
 
-  // Group by view
+function renderPhotos(el, d) {
+  var photos = d.photos.map(function(p) { var k = photoKind(p.file); k.p = p; return k; });
   var views = ['Aerial', 'Front', 'Back', 'Left', 'Right', 'Other'];
   var grouped = {};
   views.forEach(function(v) { grouped[v] = { before: null, after: null }; });
-  photos.forEach(function(p) {
-    var v = p.view;
-    if (!grouped[v]) grouped[v] = { before: null, after: null };
-    grouped[v][p.time] = p;
-  });
+  photos.forEach(function(k) { grouped[k.view][k.time] = k; });
 
   var html = '<div class="bp-bar">';
   html += '<span class="bp-count">' + photos.length + ' photo' + (photos.length !== 1 ? 's' : '') + '</span>';
-  html += '<a class="bp-link" href="' + onedrive + '" target="_blank" rel="noopener">Open in OneDrive &#8599;</a>';
+  html += '<a class="bp-link" href="' + e(d.webUrl) + '" target="_blank" rel="noopener">Open folder in OneDrive &#8599;</a>';
   html += '</div>';
-
   views.forEach(function(v) {
     var g = grouped[v];
-    if (!g || (!g.before && !g.after)) return;
-    html += '<div class="bp-group-label">' + v;
-    if (g.before && g.after) html += ' &mdash; before &amp; after';
-    else if (g.before) html += ' &mdash; before';
-    else html += ' &mdash; after';
-    html += '</div>';
-
-    if (g.before && g.after) {
-      html += '<div class="bp-pair">';
-      html += buildPhotoCard(g.before);
-      html += buildPhotoCard(g.after);
-      html += '</div>';
-    } else {
-      html += '<div class="bp-single">';
-      html += buildPhotoCard(g.before || g.after);
-      html += '</div>';
-    }
+    if (!g.before && !g.after) return;
+    html += '<div class="bp-group-label">' + v + (g.before && g.after ? ' &mdash; before &amp; after' : g.before ? ' &mdash; before' : ' &mdash; after') + '</div>';
+    html += (g.before && g.after) ? '<div class="bp-pair">' + buildPhotoCard(g.before) + buildPhotoCard(g.after) + '</div>'
+                                  : '<div class="bp-single">' + buildPhotoCard(g.before || g.after) + '</div>';
   });
-
   el.innerHTML = html;
 }
 
-function buildPhotoCard(p) {
-  var badge = p.time === 'after'
-    ? '<span class="bp-badge after">After</span>'
-    : '<span class="bp-badge before">Before</span>';
-  var icon = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="opacity:.3">' +
-    '<rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>' +
-    '<circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>' +
-    '<path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
-  return '<div class="bp-card">' +
-    '<div class="bp-thumb">' + icon + badge + '</div>' +
-    '<div class="bp-label">' + p.view + ' — ' + p.time + '</div>' +
-  '</div>';
+function buildPhotoCard(k) {
+  var p = k.p;
+  var badge = k.time === 'after' ? '<span class="bp-badge after">After</span>' : '<span class="bp-badge before">Before</span>';
+  var img = p.thumb ? '<img src="' + e(p.thumb) + '" alt="' + e(k.view + ' ' + k.time) + '" loading="lazy">'
+                    : '<span class="bp-placeholder">No preview</span>';
+  return '<a class="bp-card" href="' + e(p.large || p.web) + '" target="_blank" rel="noopener" title="Open full size">' +
+    '<div class="bp-thumb">' + img + badge + '</div>' +
+    '<div class="bp-label">' + k.view + ' — ' + k.time + '</div></a>';
 }
 
 function renderMap() {

@@ -37,7 +37,7 @@ import traceback
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlparse
 
 import msal
 import requests
@@ -132,6 +132,8 @@ class Dataset:
         self.path = cfg["path"]
         self.sheet = cfg.get("sheet", "BuidlingAttributes")
         self.header_row = int(cfg.get("header_row", 1))
+        self.photos = cfg.get("photos")  # OneDrive folder of per-building photo folders (optional)
+        self._photo_folders = None       # (time, [names])
         self.lock = threading.Lock()  # serializes writes to this workbook
         self._item = None
         self._session = None  # persistent workbook session: reads see earlier writes
@@ -301,6 +303,40 @@ class Dataset:
         return out
 
 
+def photo_folders(ds):
+    """Names of the per-building photo folders, cached 10 minutes."""
+    if not ds.photos:
+        raise BadRequest("no photo folder for this dataset")
+    if ds._photo_folders and time.time() - ds._photo_folders[0] < 600:
+        return ds._photo_folders[1]
+    root = graph("GET", f"/me/drive/root:/{quote(ds.photos)}?$select=id,webUrl")
+    names, url = [], f"/me/drive/items/{root['id']}/children?$select=name,folder&$top=999"
+    while url:
+        page = graph("GET", url)
+        names += [c["name"] for c in page["value"] if "folder" in c]
+        nxt = page.get("@odata.nextLink")
+        url = nxt[len(GRAPH):] if nxt else None
+    ds._photo_folders = (time.time(), {"folders": names, "webUrl": root["webUrl"]})
+    return ds._photo_folders[1]
+
+
+def photos_in(ds, folder):
+    """Photos in one building folder, with short-lived thumbnail links."""
+    if folder not in photo_folders(ds)["folders"]:
+        raise BadRequest("unknown photo folder")
+    it = graph("GET", f"/me/drive/root:/{quote(ds.photos + '/' + folder)}:/children"
+                      "?$select=name,webUrl,file&$expand=thumbnails&$top=200")
+    out = []
+    for f in it["value"]:
+        if "file" not in f:
+            continue
+        th = (f.get("thumbnails") or [{}])[0]
+        out.append({"file": f["name"], "web": f["webUrl"],
+                    "thumb": (th.get("medium") or {}).get("url"), "large": (th.get("large") or {}).get("url")})
+    folder_url = photo_folders(ds)["webUrl"] + "/" + quote(folder)
+    return {"folder": folder, "webUrl": folder_url, "photos": out}
+
+
 class BadRequest(Exception):
     pass
 
@@ -393,6 +429,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, ds.schema())
             if rest == ["rows"]:
                 return self.send(200, {"rows": ds.all_rows()})
+            if rest == ["photo-folders"]:
+                return self.send(200, photo_folders(ds))
+            if rest == ["photos"]:
+                q = parse_qs(urlparse(self.path).query).get("folder", [""])[0]
+                return self.send(200, photos_in(ds, q))
             self.send(404, {"error": "not_found"})
         self.handle_safely(go)
 
