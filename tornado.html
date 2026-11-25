@@ -216,7 +216,15 @@ button { cursor: pointer; }
 #ref-map { display: none; width: 100%; height: 100%; }
 #ref-map.on { display: block; }
 #ref-sv { align-items: center; justify-content: center; }
-#ref-sv .sv-pano { width: 100%; height: 100%; }
+#ref-sv .sv-pano { width: 100%; flex: 1; min-height: 0; }
+#ref-sv .sv-bar { width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 10px;
+  border-top: 1px solid var(--border); background: var(--surface-alt); font-size: 12px; color: var(--text-muted); }
+#ref-sv .sv-bar button { font: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 4px;
+  border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+#ref-sv .sv-bar button:disabled { opacity: .5; cursor: default; }
+#ref-sv .sv-msg { flex: 1 1 160px; min-width: 0; }
+#ref-sv .sv-msg.ok { color: var(--success); }
+#ref-sv .sv-msg.err { color: var(--danger, #b3261e); }
 #ref-sv .sv-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
 #ref-bldphotos { padding: 12px; overflow-y: auto; }
 #ref-bldphotos .bp-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
@@ -538,11 +546,11 @@ select {
             <div id="ref-bldphotos" class="ref-pane"></div>
             <div id="ref-photos" class="ref-pane">
               <a class="photo-card" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/Shared%20Documents/tornadoREUs/2025stlouis/Data_Input/socialMediaVideos" target="_blank" rel="noopener">
-                <div class="pc-title">Social Media Videos &amp; Photos (OneDrive)</div>
+                <div class="pc-title">Social Media Videos &amp; Photos (Tornado REU Team)</div>
                 <div class="pc-desc">Aftermath photos, aerial drone videos, before/after comparisons from social media sources</div>
               </a>
               <a class="photo-card" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/Shared%20Documents/tornadoREUs/2025stlouis/Reference_Overall_Photo_Links/StLouis_2025_Tornado_Photos" target="_blank" rel="noopener">
-                <div class="pc-title">Building Photos (OneDrive)</div>
+                <div class="pc-title">Building Photos (Tornado REU Team)</div>
                 <div class="pc-desc">Before and after photos for every building, one folder per address</div>
               </a>
             </div>
@@ -1213,6 +1221,20 @@ function switchRefTab(pane) {
 var svPano = null;
 var svService = new google.maps.StreetViewService();
 
+function svBearing(from, lat, lon) {
+  var f1 = from.lat() * Math.PI / 180, f2 = lat * Math.PI / 180, dl = (lon - from.lng()) * Math.PI / 180;
+  var y = Math.sin(dl) * Math.cos(f2), x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+function svShowDate() {
+  var d = document.querySelector("#ref-sv .sv-date");
+  if (!d || !svPano || !svPano.getPano()) return;
+  svService.getPanorama({ pano: svPano.getPano() }, function(data, status) {
+    d.textContent = status === google.maps.StreetViewStatus.OK && data.imageDate ? "Captured " + data.imageDate : "";
+  });
+}
+
 function updateStreetView() {
   var el = document.getElementById("ref-sv");
   if (!el) return;
@@ -1221,20 +1243,24 @@ function updateStreetView() {
     var pos = new google.maps.LatLng(lat, lon);
     svService.getPanorama({ location: pos, radius: 100 }, function(data, status) {
       if (status === google.maps.StreetViewStatus.OK) {
+        var heading = svBearing(data.location.latLng, lat, lon);
         if (!svPano) {
-          var div = el.querySelector(".sv-pano");
-          if (!div) {
-            el.innerHTML = '<div class="sv-pano"></div>';
-            div = el.querySelector(".sv-pano");
-          }
-          svPano = new google.maps.StreetViewPanorama(div, {
+          el.innerHTML = '<div class="sv-pano"></div>' +
+            '<div class="sv-bar"><span class="sv-date"></span>' +
+            '<button type="button" id="sv-save" onclick="saveStreetView()">Save this view</button>' +
+            '<span class="sv-msg" id="sv-msg">Saves exactly what you see to this building\'s photos</span></div>';
+          svPano = new google.maps.StreetViewPanorama(el.querySelector(".sv-pano"), {
             position: data.location.latLng,
-            pov: { heading: 0, pitch: 0 },
+            pov: { heading: heading, pitch: 5 },
             zoom: 1,
             motionTracking: false
           });
+          svPano.addListener("pano_changed", svShowDate);
         } else {
           svPano.setPosition(data.location.latLng);
+          svPano.setPov({ heading: heading, pitch: 5 });
+          var m = document.getElementById("sv-msg");
+          if (m) { m.className = "sv-msg"; m.textContent = "Saves exactly what you see to this building's photos"; }
         }
       } else {
         svPano = null;
@@ -1245,6 +1271,28 @@ function updateStreetView() {
     svPano = null;
     el.innerHTML = '<div class="sv-empty">Enter coordinates or click the satellite map to load Street View</div>';
   }
+}
+
+function saveStreetView() {
+  var msg = document.getElementById("sv-msg"), btn = document.getElementById("sv-save");
+  var b = blds.find(function(x) { return x._id === curId; });
+  function say(t, cls) { if (msg) { msg.textContent = t; msg.className = "sv-msg" + (cls ? " " + cls : ""); } }
+  if (!svPano || !svPano.getPano()) return say("Street View hasn't loaded yet.", "err");
+  if (!b || !b._row) return say("Save this building first, then save the view.", "err");
+  var pov = svPano.getPov(), zoom = svPano.getZoom() || 1, forId = curId;
+  var body = { row: b._row, pano: svPano.getPano(), heading: pov.heading, pitch: pov.pitch,
+               fov: Math.max(10, Math.min(120, 180 / Math.pow(2, zoom))) };
+  btn.disabled = true; say("Saving…");
+  getPhotoIndex().catch(function() { return {}; }).then(function(idx) {
+    var folder = idx[normalizeAddr(fd.complete_address || "")];
+    if (folder) body.folder = folder;
+    return api("POST", "/streetview-save", body);
+  }).then(function(d) {
+    delete photoCache[d.folder]; photoIndex = null;
+    if (curId === forId) { say("Saved " + d.file + " to Building Photos", "ok"); updateBuildingPhotos(); }
+  }).catch(function(err) {
+    say("Couldn't save: " + err.message, "err");
+  }).then(function() { btn.disabled = false; });
 }
 
 // ── Building Photos ─────────────────────────────────────────────────

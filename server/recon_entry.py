@@ -6,7 +6,8 @@ Runs on the lab Mac mini under Becca's account and uses her delegated
 "E5-Nap API" token (the MSAL cache from ~/Code/admin/general/api-access).
 The token never leaves this machine: the form talks to this server, and this
 server only reads and updates building rows in the workbooks named in the
-config. No delete, no other files.
+config, and adds Street View pictures that students save into a building's
+photo folder ("Save this view"). It never deletes anything.
 
 Config (outside the repo): ~/.config/recon-entry/config.json
   {
@@ -21,6 +22,12 @@ Config (outside the repo): ~/.config/recon-entry/config.json
   }
 
 Run:  uv run --with requests --with msal python server/recon_entry.py [--port 8787]
+
+Street View saves need "google_key" in the config (a Street View Static API
+key, never sent to the browser) and are capped per day by
+"streetview_daily_cap" (default 200), counted in streetview_calls.jsonl.
+A dataset's "storm_month" (e.g. "2025-05") labels each saved picture as
+before or after the storm.
 
 Every write is appended to ~/.local/state/recon-entry/writes.jsonl with the
 old and new value of each cell, so any save can be traced and undone.
@@ -99,8 +106,8 @@ class GraphError(RuntimeError):
         self.status, self.code = status, code
 
 
-def graph(method, url, session=None, **kw):
-    headers = {"Authorization": "Bearer " + token()}
+def graph(method, url, session=None, headers_extra=None, **kw):
+    headers = {"Authorization": "Bearer " + token(), **(headers_extra or {})}
     if session:
         headers["workbook-session-id"] = session
     r = requests.request(method, GRAPH + url, headers=headers, timeout=60, **kw)
@@ -137,6 +144,8 @@ class Dataset:
         # Optional driveId of a Team's document library; paths are then relative to that library's root.
         self.drive = f"/drives/{cfg['drive']}" if cfg.get("drive") else "/me/drive"
         self._photo_folders = None       # (time, [names])
+        # Month of the storm ("2025-05" for St. Louis); Street View saves are labelled before/after it.
+        self.storm = cfg.get("storm_month")
         self.lock = threading.Lock()  # serializes writes to this workbook
         self._item = None
         self._session = None  # persistent workbook session: reads see earlier writes
@@ -340,6 +349,95 @@ def photos_in(ds, folder):
     return {"folder": folder, "webUrl": folder_url, "photos": out}
 
 
+# ── Street View stills ("Save this view") ──────────────────────────
+SV_META = "https://maps.googleapis.com/maps/api/streetview/metadata"
+SV_IMG = "https://maps.googleapis.com/maps/api/streetview"
+_sv_lock = threading.Lock()
+
+
+def _google_get(url, params, timeout):
+    """GET a Google endpoint; errors never carry the URL (it holds the key)."""
+    try:
+        return requests.get(url, params=params, timeout=timeout)
+    except requests.RequestException as ex:
+        raise RuntimeError(f"Google Street View request failed ({type(ex).__name__})") from None
+
+
+def _sv_count_today():
+    f = STATE_DIR / "streetview_calls.jsonl"
+    today = datetime.now(timezone.utc).date().isoformat()
+    if not f.exists():
+        return 0
+    return sum(1 for line in f.read_text().splitlines() if line.startswith('{"day": "' + today))
+
+
+def _sv_record(rec):
+    rec = {"day": datetime.now(timezone.utc).date().isoformat(), **rec}
+    with open(STATE_DIR / "streetview_calls.jsonl", "a") as f:
+        f.write(json.dumps(rec) + "\n")
+
+
+def safe_folder_name(addr):
+    name = re.sub(r'[\\/:*?"<>|#%]', " ", str(addr)).strip().rstrip(".")
+    return re.sub(r"\s+", " ", name)[:200]
+
+
+def save_streetview(ds, b, who):
+    """Fetch one Street View still by pano id and file it in the building's photo folder."""
+    key = CFG.get("google_key", "").strip()
+    if not key or not ds.photos:
+        raise BadRequest("Street View saving is not set up for this dataset")
+    pano = str(b.get("pano", ""))
+    if not re.fullmatch(r"[A-Za-z0-9_-]{10,64}", pano):
+        raise BadRequest("bad pano id")
+    try:
+        heading = float(b.get("heading", 0)) % 360
+        pitch = max(-90.0, min(90.0, float(b.get("pitch", 0))))
+        fov = max(10.0, min(120.0, float(b.get("fov", 90))))
+        row = int(b.get("row"))
+    except (TypeError, ValueError):
+        raise BadRequest("bad view numbers")
+    rec = next((r for r in ds.all_rows() if r.get("_row") == row), None)
+    if rec is None:
+        raise BadRequest("unknown row")
+    folders = photo_folders(ds)["folders"]
+    folder = b.get("folder") or ""
+    if folder and folder not in folders:
+        raise BadRequest("unknown photo folder")
+    if not folder:
+        folder = safe_folder_name(rec.get("complete_address") or rec.get("complete address") or f"row {row}")
+        if not folder:
+            raise BadRequest("this building has no address for a photo folder")
+    with _sv_lock:
+        cap = int(CFG.get("streetview_daily_cap", 200))
+        if _sv_count_today() >= cap:
+            return 429, {"error": "daily_cap", "message": f"Street View saves are capped at {cap} a day. Try again tomorrow."}
+        meta = _google_get(SV_META, {"pano": pano, "key": key}, 30).json()
+        if meta.get("status") != "OK":
+            _sv_record({"kind": "meta", "pano": pano, "status": meta.get("status")})
+            raise BadRequest(f"Google has no Street View image for this view ({meta.get('status')})")
+        img = _google_get(SV_IMG, {"size": "640x640", "pano": pano, "heading": f"{heading:.1f}",
+                                     "pitch": f"{pitch:.1f}", "fov": f"{fov:.0f}", "key": key,
+                                     "return_error_code": "true"}, 60)
+        _sv_record({"kind": "image", "pano": pano, "status": img.status_code, "who": who, "row": row})
+    if img.status_code != 200 or not img.headers.get("Content-Type", "").startswith("image/"):
+        raise GraphError(f"Street View image request failed: {img.status_code}", img.status_code, "")
+    date = str(meta.get("date") or "undated")
+    if not ds.storm or date == "undated":
+        when = ""
+    else:
+        when = "before" if date < ds.storm else "after" if date > ds.storm else "stormmonth"
+    fname = f"GSV_{when + '_' if when else ''}{date}_h{heading:03.0f}.jpg"
+    path = quote(f"{ds.photos}/{folder}/{fname}")
+    it = graph("PUT", f"{ds.drive}/root:/{path}:/content?@microsoft.graph.conflictBehavior=rename",
+               data=img.content, headers_extra={"Content-Type": "image/jpeg"})
+    ds._photo_folders = None  # a new folder may exist now
+    audit({"dataset": ds.key, "op": "streetview", "row": row, "who": who, "folder": folder,
+           "file": it.get("name"), "pano": pano, "date": date, "heading": round(heading, 1),
+           "pitch": round(pitch, 1), "fov": round(fov), "at": datetime.now(timezone.utc).isoformat()})
+    return 200, {"file": it.get("name"), "webUrl": it.get("webUrl"), "folder": folder, "date": date, "when": when}
+
+
 class BadRequest(Exception):
     pass
 
@@ -445,6 +543,9 @@ class Handler(BaseHTTPRequestHandler):
             parts, ds, rest = self.route()
             if parts is None or not self.authed():
                 return parts is None and self.send(404, {"error": "not_found"})
+            if ds is not None and rest == ["streetview-save"]:
+                code, out = save_streetview(ds, self.body(), self.headers.get("X-Entered-By", ""))
+                return self.send(code, out)
             if ds is None or rest != ["rows"]:
                 return self.send(404, {"error": "not_found"})
             b = self.body()
