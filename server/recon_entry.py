@@ -37,6 +37,7 @@ import hashlib
 import hmac
 import json
 import logging
+import math
 import re
 import sys
 import threading
@@ -146,6 +147,8 @@ class Dataset:
         self._photo_folders = None       # (time, [names])
         # Month of the storm ("2025-05" for St. Louis); Street View saves are labelled before/after it.
         self.storm = cfg.get("storm_month")
+        # Base URL of a DebrisTech 360 viewer's tile index (".../player2/tiles-NNN"), optional.
+        self.dt360_tiles = cfg.get("dt360_tiles")
         self.lock = threading.Lock()  # serializes writes to this workbook
         self._item = None
         self._session = None  # persistent workbook session: reads see earlier writes
@@ -438,6 +441,48 @@ def save_streetview(ds, b, who):
     return 200, {"file": it.get("name"), "webUrl": it.get("webUrl"), "folder": folder, "date": date, "when": when}
 
 
+# ── DebrisTech 360 drive (after the storm) ──────────────────────────
+# The viewer's frame index lives in zoom-15 GeoJSON tiles; frames carry lat/lon/date in their
+# properties. The browser can't read them (no CORS), so the server finds the nearest frame.
+_dt_tiles = {}  # (x, y) -> list of (lat, lon, date)
+
+
+def _dt_tile(base, x, y):
+    if (x, y) not in _dt_tiles:
+        r = requests.get(f"{base}/15/{x}/{y}.geojson", timeout=30)
+        pts = []
+        if r.status_code == 200:
+            for f in r.json().get("features", []):
+                pr = f.get("properties") or {}
+                if "lat" in pr and "lon" in pr:
+                    pts.append((float(pr["lat"]), float(pr["lon"]), str(pr.get("date", ""))[:10]))
+        elif r.status_code != 404:
+            raise RuntimeError(f"360 tile {x}/{y}: HTTP {r.status_code}")
+        _dt_tiles[(x, y)] = pts
+    return _dt_tiles[(x, y)]
+
+
+def dt360_nearest(ds, lat, lon):
+    base = ds.dt360_tiles
+    if not base:
+        raise BadRequest("no 360 drive for this dataset")
+    if not (-90 < lat < 90 and -180 < lon < 180):
+        raise BadRequest("bad coordinates")
+    n = 2 ** 15
+    x = int((lon + 180) / 360 * n)
+    y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
+    best = None
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for fl, fo, date in _dt_tile(base, x + dx, y + dy):
+                d = 6371000 * math.hypot(math.radians(fl - lat), math.radians(fo - lon) * math.cos(math.radians(lat)))
+                if best is None or d < best[0]:
+                    best = (d, date)
+    if best is None:
+        return {"distance_m": None, "date": None}
+    return {"distance_m": round(best[0]), "date": best[1]}
+
+
 class BadRequest(Exception):
     pass
 
@@ -530,6 +575,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, ds.schema())
             if rest == ["rows"]:
                 return self.send(200, {"rows": ds.all_rows()})
+            if rest == ["dt360"]:
+                q = parse_qs(urlparse(self.path).query)
+                try:
+                    lat, lon = float(q["lat"][0]), float(q["lon"][0])
+                except (KeyError, ValueError):
+                    raise BadRequest("lat and lon required")
+                return self.send(200, dt360_nearest(ds, lat, lon))
             if rest == ["photo-folders"]:
                 return self.send(200, photo_folders(ds))
             if rest == ["photos"]:
