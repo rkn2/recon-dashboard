@@ -88,6 +88,13 @@ button { cursor: pointer; }
   display: flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 12px;
 }
+.list-tools { padding: 8px 14px; border-bottom: 1px solid var(--border); display: grid; gap: 6px; }
+.list-tools input[type=search] { font: inherit; font-size: 12px; padding: 5px 8px; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--input-bg); color: var(--text); width: 100%; box-sizing: border-box; }
+.list-tools .chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.chip { font: inherit; font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.bcount { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+.list-empty { padding: 16px 14px; color: var(--text-muted); font-size: 12px; }
 .user-row input {
   flex: 1; font: inherit; font-size: 12px; padding: 3px 7px;
   border: 1px solid var(--input-border); border-radius: var(--radius);
@@ -150,6 +157,7 @@ button { cursor: pointer; }
 #fview.on { display: flex; }
 
 /* Tab bar */
+.tab-all { margin-left: auto; font: inherit; font-size: 11.5px; border: none; color: var(--accent) !important; position: sticky; right: 0; background: var(--surface); box-shadow: -8px 0 8px var(--surface); }
 #tabs {
   display: flex; gap: 0; border-bottom: 1px solid var(--border);
   background: var(--surface); overflow-x: auto; flex-shrink: 0;
@@ -431,7 +439,10 @@ select {
     border: 1px solid var(--accent); cursor: pointer;
   }
   #ref-panel { height: auto; min-height: 0; max-height: 0; overflow: hidden; transition: max-height .3s ease; flex-shrink: 0; }
-  #ref-panel.mob-open { max-height: 45vh; min-height: 180px; }
+  #ref-panel.mob-open { max-height: none; flex: 1; min-height: 0; }
+  #mob-hdr #map-toggle { font-size: 12px; white-space: nowrap; padding: 6px 10px; }
+  #mob-hdr > div { flex: 1; min-width: 0; }
+  #content.ref-full #form-panel { display: none; }
   #split-handle { display: none; }
   .ref-search { display: none; }
   #ref-photos { padding: 12px; }
@@ -471,11 +482,19 @@ select {
   <aside id="sidebar">
     <div class="side-hdr">
       <h1>Tornado Damage DB</h1>
-      <small>St. Louis 2024</small>
+      <small>St. Louis 2025</small>
     </div>
     <div class="user-row">
       <span style="font-weight:500">Name</span>
       <input type="text" id="uname" placeholder="Your name">
+    </div>
+    <div class="list-tools">
+      <input type="search" id="bsearch" placeholder="Search address or row #" autocomplete="off">
+      <div class="chips">
+        <button type="button" class="chip" id="f-mine" aria-pressed="false">Mine</button>
+        <button type="button" class="chip" id="f-todo" aria-pressed="false">Not finished</button>
+        <span class="bcount" id="bcount"></span>
+      </div>
     </div>
     <div class="bld-list" id="blist"></div>
     <div class="side-act">
@@ -488,9 +507,9 @@ select {
       <button onclick="openSidebar()" aria-label="Menu">&#9776;</button>
       <div>
         <div class="mob-title" id="mob-title">Tornado Damage DB</div>
-        <div class="mob-sub">St. Louis 2024</div>
+        <div class="mob-sub">St. Louis 2025</div>
       </div>
-      <button id="map-toggle" onclick="toggleMap()">Map</button>
+      <button id="map-toggle" onclick="toggleMap()">Photos &amp; map</button>
     </div>
     <div id="empty">
       <div id="landing-map"></div>
@@ -935,14 +954,44 @@ function secProg(sec) {
 }
 
 // ── Sidebar ─────────────────────────────────────────────────────────
+// List filters: search text, "Mine" (completed_by matches the Name box), "Not finished" (no damage status yet)
+const LF = { q: "", mine: false, todo: false };
+try { const s0 = JSON.parse(localStorage.getItem("tornado_list_filters") || "{}"); LF.mine = !!s0.mine; LF.todo = !!s0.todo; } catch(e) {}
+function saveLF() { try { localStorage.setItem("tornado_list_filters", JSON.stringify({ mine: LF.mine, todo: LF.todo })); } catch(e) {} }
+function isMine(b) {
+  const me = document.getElementById("uname").value.trim().toLowerCase();
+  const by = String(b.completed_by || "").trim().toLowerCase();
+  if (!me || !by) return false;
+  // "Nymir" and "Nymire" match (one letter off the end); "Bri" (summer 2025) and "Brian" don't
+  return me === by || (Math.abs(me.length - by.length) === 1 && (me.startsWith(by) || by.startsWith(me)));
+}
+function isDone(b) { return !!(b.status_u || b.damage_status); }
+function shortLbl(b) { return String(lbl(b)).split(",")[0]; }
+function listed() {
+  const q = LF.q.trim().toLowerCase();
+  return blds.filter(b => {
+    if (LF.mine && !isMine(b)) return false;
+    if (LF.todo && isDone(b)) return false;
+    if (q && !(String(lbl(b)).toLowerCase().includes(q) || String(b.sno) === q)) return false;
+    return true;
+  });
+}
+
 function renderList() {
   const el = document.getElementById("blist");
-  if (!blds.length) { el.innerHTML = '<div style="padding:16px 14px;color:var(--text-muted);font-size:12px">No buildings yet.</div>'; return; }
-  el.innerHTML = blds.map(b => {
+  if (!blds.length) { el.innerHTML = '<div class="list-empty">No buildings yet.</div>'; return; }
+  const shown = listed();
+  document.getElementById("bcount").textContent = shown.length === blds.length ? blds.length + " buildings" : shown.length + " of " + blds.length;
+  if (!shown.length) {
+    el.innerHTML = '<div class="list-empty">' + (LF.mine && !document.getElementById("uname").value.trim()
+      ? 'Type your name above to see your buildings.' : 'No buildings match.') + '</div>';
+    return;
+  }
+  el.innerHTML = shown.map(b => {
     const st = b.status_u || b.damage_status || "";
     const dc = st ? "hi" : "lo";
     return `<div class="bld-item ${b._id===curId?'active':''}" data-id="${b._id}">
-      <span class="n">${e(b.sno)}</span><span class="a">${e(lbl(b))}</span><span class="dot ${dc}"></span><button class="del-x" data-did="${b._id}" title="Delete">&times;</button></div>`;
+      <span class="n">${e(b.sno)}</span><span class="a" title="${e(lbl(b))}">${e(shortLbl(b))}</span><span class="dot ${dc}"></span><button class="del-x" data-did="${b._id}" title="Delete">&times;</button></div>`;
   }).join("");
   el.querySelectorAll(".bld-item").forEach(x => {
     x.onclick = (ev) => { if (!ev.target.classList.contains("del-x")) selBld(x.dataset.id); };
@@ -1005,14 +1054,48 @@ function schedSave() {
 
 function setF(k, v) { fd[k] = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
 
+// ── Core fields view ────────────────────────────────────────────────
+// The short view hides fields the fall 2026 crew rarely fills (checked against
+// the live workbook, 2026-11-25). Every other tab shows all its fields.
+// "Show all fields" brings back everything; nothing is removed from the workbook.
+const CORE_RULES = {
+  photos: [],
+  dmg: ["wind_damage_rating_u","damage_indicator_u","degree_of_damage_u","wind_damage_details_u",
+        "roof_structure_damage_u_per","roof_substrate_damage_per","wall_structure_damage_u",
+        "wall_substrate_damage_u","wall_cladding_damage_level_u","damage_status"],
+  heritage: ["single_unit","multiple_unit"],
+  prop: ["prop_residential facility","owner_individual","owner_business","owner_government","owner_ngo","owner_religious","owner_unknown"]
+};
+let showAll = false;
+try { showAll = localStorage.getItem("tornado_show_all") === "1"; } catch(e) {}
+function secs() {
+  if (showAll) return S.sections;
+  return S.sections.map(sec => {
+    const keep = CORE_RULES[sec.id];
+    if (!keep) return sec;
+    return Object.assign({}, sec, { f: sec.f.filter(f => keep.includes(f.k) || keep.includes(f.k.trim())) });
+  }).filter(sec => sec.f.length);
+}
+function toggleShowAll() {
+  const cur = secs()[curSec];
+  showAll = !showAll;
+  try { localStorage.setItem("tornado_show_all", showAll ? "1" : "0"); } catch(e) {}
+  const i = secs().findIndex(x => cur && x.id === cur.id);
+  curSec = i >= 0 ? i : 0;
+  renderTabs(); renderForm();
+}
+
 // ── Tabs ────────────────────────────────────────────────────────────
 function renderTabs() {
-  document.getElementById("tabs").innerHTML = S.sections.map((sec,i) => {
+  const list = secs();
+  if (curSec >= list.length) curSec = 0;
+  document.getElementById("tabs").innerHTML = list.map((sec,i) => {
     const {n,tot} = secProg(sec);
     const pc = n===0?"":n>=tot?"hi":"mid";
     return `<div class="tab ${i===curSec?'on':''}" data-i="${i}"><span class="pip ${pc}"></span>${e(sec.t)}</div>`;
-  }).join("");
-  document.getElementById("tabs").querySelectorAll(".tab").forEach(x =>
+  }).join("") + `<button type="button" class="tab tab-all" id="showall">${showAll ? "Fewer fields" : "Show all fields"}</button>`;
+  document.getElementById("showall").onclick = toggleShowAll;
+  document.getElementById("tabs").querySelectorAll(".tab[data-i]").forEach(x =>
     x.onclick = () => { curSec = +x.dataset.i; renderTabs(); renderForm(); }
   );
 }
@@ -1293,7 +1376,8 @@ function renderMap() {
 
 // ── Form Rendering ──────────────────────────────────────────────────
 function renderForm() {
-  const sec = S.sections[curSec];
+  const list = secs();
+  const sec = list[curSec];
   const el = document.getElementById("fscroll");
   let h = `<h2 class="sec-title">${e(sec.t)}</h2>`;
   if (sec.d) h += `<p class="sec-desc">${e(sec.d)}</p>`;
@@ -1306,9 +1390,9 @@ function renderForm() {
   }
 
   h += '<div class="nav">';
-  h += curSec > 0 ? `<button class="btn btn-s" id="pbtn">&larr; ${e(S.sections[curSec-1].t)}</button>` : '<span></span>';
+  h += curSec > 0 ? `<button class="btn btn-s" id="pbtn">&larr; ${e(list[curSec-1].t)}</button>` : '<span></span>';
   h += '<button class="btn btn-d" id="dbtn">Delete</button>';
-  h += curSec < S.sections.length-1 ? `<button class="btn btn-p" id="nbtn">${e(S.sections[curSec+1].t)} &rarr;</button>` : '<span></span>';
+  h += curSec < list.length-1 ? `<button class="btn btn-p" id="nbtn">${e(list[curSec+1].t)} &rarr;</button>` : '<span></span>';
   h += '</div>';
 
   el.innerHTML = h;
@@ -1417,8 +1501,10 @@ function closeSidebar() {
 function toggleMap() {
   var rp = document.getElementById("ref-panel");
   rp.classList.toggle("mob-open");
+  var open = rp.classList.contains("mob-open");
+  document.getElementById("content").classList.toggle("ref-full", open);
   var btn = document.getElementById("map-toggle");
-  btn.textContent = rp.classList.contains("mob-open") ? "Hide" : "Map";
+  btn.textContent = open ? "Back to form" : "Photos & map";
   if (leafMap) setTimeout(function(){ leafMap.invalidateSize(); }, 350);
 }
 function updateMobTitle() {
@@ -1520,7 +1606,13 @@ function initLandingMap(){
 // ── Boot ────────────────────────────────────────────────────────────
 loadLocal();
 try { const n = localStorage.getItem("tornado_db_user"); if(n) document.getElementById("uname").value = n; } catch(e) {}
-document.getElementById("uname").onchange = function() { try { localStorage.setItem("tornado_db_user", this.value); } catch(e) {} };
+document.getElementById("uname").onchange = function() { try { localStorage.setItem("tornado_db_user", this.value); } catch(e) {} renderList(); };
+document.getElementById("bsearch").oninput = function() { LF.q = this.value; renderList(); };
+[["f-mine","mine"],["f-todo","todo"]].forEach(function(p) {
+  const btn = document.getElementById(p[0]);
+  btn.setAttribute("aria-pressed", LF[p[1]] ? "true" : "false");
+  btn.onclick = function() { LF[p[1]] = !LF[p[1]]; btn.setAttribute("aria-pressed", LF[p[1]] ? "true" : "false"); saveLF(); renderList(); };
+});
 renderList();
 setTimeout(initLandingMap,100);
 
