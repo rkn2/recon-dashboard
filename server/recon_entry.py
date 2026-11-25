@@ -349,8 +349,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def authed(self):
-        code = self.headers.get("X-Lab-Code", "")
-        if hmac.compare_digest(code.encode(), CFG["lab_code"].encode()):
+        code = self.headers.get("X-Lab-Code", "").strip().lower()  # students may type H3D
+        if hmac.compare_digest(code.encode(), CFG["lab_code"].strip().lower().encode()):
             return True
         time.sleep(1)
         self.send(401, {"error": "bad_code", "message": "Lab code not recognized."})
@@ -432,8 +432,8 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                         handlers=[logging.StreamHandler(), logging.FileHandler(STATE_DIR / "server.log")])
     CFG.update(json.loads(args.config.read_text()))
-    if len(CFG.get("lab_code", "")) < 6:
-        sys.exit("config lab_code missing or too short")
+    if not CFG.get("lab_code", "").strip():
+        sys.exit("config lab_code missing")
     for k, c in CFG["datasets"].items():
         DATASETS[k] = Dataset(k, c)
     token()  # fail at startup, not on the first student request
