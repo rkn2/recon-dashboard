@@ -1288,12 +1288,15 @@ function loadStreetViewLink() {
   var m = url.match(/!1s([A-Za-z0-9_-]{10,64})!2e/);
   if (!m) return say("No Street View capture found in that link. Open the capture in Google Maps and copy the address bar.", "err");
   if (!svPano) return say("Street View hasn't loaded yet.", "err");
-  var pano = m[1], v = url.match(/@[-\d.]+,[-\d.]+,[\d.]+a,([\d.]+)y,([\d.]+)h,([\d.]+)t/);
+  var pano = m[1], at = (url.match(/@[^/]*/) || [""])[0];
+  function part(letter) { var x = at.match(new RegExp(",([\\d.]+)" + letter + "(?=,|$)")); return x ? parseFloat(x[1]) : null; }
+  var fovIn = part("y"), headIn = part("h"), tiltIn = part("t");
   svService.getPanorama({ pano: pano }, function(data, status) {
     if (status !== google.maps.StreetViewStatus.OK) return say("Google couldn't load that capture.", "err");
     svPano.setPano(pano);
-    if (v) svPano.setPov({ heading: parseFloat(v[2]), pitch: parseFloat(v[3]) - 90 });
-    if (v) svPano.setZoom(Math.max(0, Math.log2(180 / Math.max(10, parseFloat(v[1])))));
+    var pov = svPano.getPov();
+    svPano.setPov({ heading: headIn !== null ? headIn : pov.heading, pitch: tiltIn !== null ? tiltIn - 90 : pov.pitch });
+    if (fovIn !== null) svPano.setZoom(Math.max(0, Math.log2(180 / Math.max(10, fovIn))));
     inp.value = "";
     say("Loaded the " + (data.imageDate || "older") + " capture. Line it up and press Save this view.", "ok");
   });
