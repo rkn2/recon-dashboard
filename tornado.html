@@ -1373,6 +1373,10 @@ function getPhotos(folder) {
 }
 function photoKind(file) {
   var n = file.replace(/\.[^.]+$/, '').toLowerCase(), view = 'Other';
+  if (n.indexOf('gsv_') === 0) {  // saved with "Save this view": GSV_<before|after>_<date>_h<heading>
+    var d = n.match(/(\d{4}-\d{2})/);
+    return { view: 'Street View', time: n.indexOf('gsv_after') === 0 ? 'after' : 'before', date: d ? d[1] : '' };
+  }
   ['aerial', 'front', 'back', 'left', 'right'].some(function(v) { if (n.indexOf(v) >= 0) { view = v[0].toUpperCase() + v.slice(1); return true; } });
   return { view: view, time: n.indexOf('after') >= 0 ? 'after' : 'before' };
 }
@@ -1403,21 +1407,24 @@ function updateBuildingPhotos() {
 
 function renderPhotos(el, d) {
   var photos = d.photos.map(function(p) { var k = photoKind(p.file); k.p = p; return k; });
-  var views = ['Aerial', 'Front', 'Back', 'Left', 'Right', 'Other'];
+  var views = ['Aerial', 'Front', 'Back', 'Left', 'Right', 'Street View', 'Other'];
   var grouped = {};
-  views.forEach(function(v) { grouped[v] = { before: null, after: null }; });
-  photos.forEach(function(k) { grouped[k.view][k.time] = k; });
+  views.forEach(function(v) { grouped[v] = { before: [], after: [] }; });
+  photos.forEach(function(k) { grouped[k.view][k.time].push(k); });
+  grouped['Street View'].before.sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+  grouped['Street View'].after.sort(function(a, b) { return a.date < b.date ? -1 : 1; });
 
   var html = '<div class="bp-bar">';
   html += '<span class="bp-count">' + photos.length + ' photo' + (photos.length !== 1 ? 's' : '') + '</span>';
-  html += '<a class="bp-link" href="' + e(d.webUrl) + '" target="_blank" rel="noopener">Open folder in OneDrive &#8599;</a>';
+  html += '<a class="bp-link" href="' + e(d.webUrl) + '" target="_blank" rel="noopener">Open folder &#8599;</a>';
   html += '</div>';
   views.forEach(function(v) {
-    var g = grouped[v];
-    if (!g.before && !g.after) return;
-    html += '<div class="bp-group-label">' + v + (g.before && g.after ? ' &mdash; before &amp; after' : g.before ? ' &mdash; before' : ' &mdash; after') + '</div>';
-    html += (g.before && g.after) ? '<div class="bp-pair">' + buildPhotoCard(g.before) + buildPhotoCard(g.after) + '</div>'
-                                  : '<div class="bp-single">' + buildPhotoCard(g.before || g.after) + '</div>';
+    var g = grouped[v], nb = g.before.length, na = g.after.length;
+    if (!nb && !na) return;
+    html += '<div class="bp-group-label">' + v + (nb && na ? ' &mdash; before &amp; after' : nb ? ' &mdash; before' : ' &mdash; after') + '</div>';
+    var all = g.before.concat(g.after);
+    html += all.length === 1 ? '<div class="bp-single">' + buildPhotoCard(all[0]) + '</div>'
+                             : '<div class="bp-pair">' + all.map(buildPhotoCard).join('') + '</div>';
   });
   el.innerHTML = html;
 }
@@ -1429,7 +1436,7 @@ function buildPhotoCard(k) {
                     : '<span class="bp-placeholder">No preview</span>';
   return '<a class="bp-card" href="' + e(p.large || p.web) + '" target="_blank" rel="noopener" title="Open full size">' +
     '<div class="bp-thumb">' + img + badge + '</div>' +
-    '<div class="bp-label">' + k.view + ' — ' + k.time + '</div></a>';
+    '<div class="bp-label">' + k.view + ' — ' + k.time + (k.date ? ' (' + k.date + ')' : '') + '</div></a>';
 }
 
 function renderMap() {
@@ -1680,7 +1687,14 @@ function initLandingMap(){
 // ── Boot ────────────────────────────────────────────────────────────
 loadLocal();
 try { const n = localStorage.getItem("tornado_db_user"); if(n) document.getElementById("uname").value = n; } catch(e) {}
-document.getElementById("uname").onchange = function() { try { localStorage.setItem("tornado_db_user", this.value); } catch(e) {} renderList(); };
+document.getElementById("uname").onchange = function() { try { localStorage.setItem("tornado_db_user", this.value); } catch(e) {} };
+// Re-draw the list while typing, and only when "Mine" depends on the name. Re-drawing on change (blur)
+// replaced the list under the pointer, so the first click on a building after typing a name was lost.
+var unameTimer = null;
+document.getElementById("uname").oninput = function() {
+  if (!LF.mine) return;
+  clearTimeout(unameTimer); unameTimer = setTimeout(renderList, 300);
+};
 document.getElementById("bsearch").oninput = function() { LF.q = this.value; renderList(); };
 [["f-mine","mine"],["f-todo","todo"]].forEach(function(p) {
   const btn = document.getElementById(p[0]);
