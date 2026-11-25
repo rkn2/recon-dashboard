@@ -225,6 +225,9 @@ button { cursor: pointer; }
 #ref-sv .sv-msg { flex: 1 1 160px; min-width: 0; }
 #ref-sv .sv-msg.ok { color: var(--success); }
 #ref-sv .sv-msg.err { color: var(--danger, #b3261e); }
+#ref-sv .sv-paste { flex: 2 1 220px; min-width: 0; font: inherit; font-size: 12px; padding: 5px 8px;
+  border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); }
+#ref-sv .sv-bar button.sv-sec { background: var(--surface); color: var(--accent); }
 #ref-sv .sv-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
 #ref-bldphotos { padding: 12px; overflow-y: auto; }
 #ref-bldphotos .bp-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
@@ -1248,7 +1251,10 @@ function updateStreetView() {
           el.innerHTML = '<div class="sv-pano"></div>' +
             '<div class="sv-bar"><span class="sv-date"></span>' +
             '<button type="button" id="sv-save" onclick="saveStreetView()">Save this view</button>' +
-            '<span class="sv-msg" id="sv-msg">Saves exactly what you see to this building\'s photos</span></div>';
+            '<span class="sv-msg" id="sv-msg">Saves exactly what you see to this building\'s photos</span></div>' +
+            '<div class="sv-bar"><input class="sv-paste" id="sv-link" placeholder="Older capture? Paste the Google Maps Street View link here" ' +
+            'onkeydown="if(event.key===\'Enter\')loadStreetViewLink()">' +
+            '<button type="button" class="sv-sec" onclick="loadStreetViewLink()">Load</button></div>';
           svPano = new google.maps.StreetViewPanorama(el.querySelector(".sv-pano"), {
             position: data.location.latLng,
             pov: { heading: heading, pitch: 5 },
@@ -1271,6 +1277,26 @@ function updateStreetView() {
     svPano = null;
     el.innerHTML = '<div class="sv-empty">Enter coordinates or click the satellite map to load Street View</div>';
   }
+}
+
+function loadStreetViewLink() {
+  var inp = document.getElementById("sv-link"), msg = document.getElementById("sv-msg");
+  function say(t, cls) { if (msg) { msg.textContent = t; msg.className = "sv-msg" + (cls ? " " + cls : ""); } }
+  var url = (inp && inp.value || "").trim();
+  if (!url) return;
+  if (/goo\.gl|maps\.app/.test(url)) return say("That's a Share link. Copy the link from the browser's address bar instead.", "err");
+  var m = url.match(/!1s([A-Za-z0-9_-]{10,64})!2e/);
+  if (!m) return say("No Street View capture found in that link. Open the capture in Google Maps and copy the address bar.", "err");
+  if (!svPano) return say("Street View hasn't loaded yet.", "err");
+  var pano = m[1], v = url.match(/@[-\d.]+,[-\d.]+,[\d.]+a,([\d.]+)y,([\d.]+)h,([\d.]+)t/);
+  svService.getPanorama({ pano: pano }, function(data, status) {
+    if (status !== google.maps.StreetViewStatus.OK) return say("Google couldn't load that capture.", "err");
+    svPano.setPano(pano);
+    if (v) svPano.setPov({ heading: parseFloat(v[2]), pitch: parseFloat(v[3]) - 90 });
+    if (v) svPano.setZoom(Math.max(0, Math.log2(180 / Math.max(10, parseFloat(v[1])))));
+    inp.value = "";
+    say("Loaded the " + (data.imageDate || "older") + " capture. Line it up and press Save this view.", "ok");
+  });
 }
 
 function saveStreetView() {
