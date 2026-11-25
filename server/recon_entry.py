@@ -6,8 +6,8 @@ Runs on the lab Mac mini under Becca's account and uses her delegated
 "E5-Nap API" token (the MSAL cache from ~/Code/admin/general/api-access).
 The token never leaves this machine: the form talks to this server, and this
 server only reads and updates building rows in the workbooks named in the
-config, and adds Street View pictures that students save into a building's
-photo folder ("Save this view"). It never deletes anything.
+config, and adds Street View pictures and DebrisTech 360 stills (with the citation
+burned in) that students save into a building's photo folder. It never deletes anything.
 
 Config (outside the repo): ~/.config/recon-entry/config.json
   {
@@ -149,6 +149,7 @@ class Dataset:
         self.storm = cfg.get("storm_month")
         # Base URL of a DebrisTech 360 viewer's tile index (".../player2/tiles-NNN"), optional.
         self.dt360_tiles = cfg.get("dt360_tiles")
+        self.dt360_label = cfg.get("dt360_label", "")  # event name for the citation on saved 360 stills
         self.lock = threading.Lock()  # serializes writes to this workbook
         self._item = None
         self._session = None  # persistent workbook session: reads see earlier writes
@@ -442,9 +443,14 @@ def save_streetview(ds, b, who):
 
 
 # ── DebrisTech 360 drive (after the storm) ──────────────────────────
-# The viewer's frame index lives in zoom-15 GeoJSON tiles; frames carry lat/lon/date in their
-# properties. The browser can't read them (no CORS), so the server finds the nearest frame.
-_dt_tiles = {}  # (x, y) -> list of (lat, lon, date)
+# The viewer's frame index lives in zoom-15 GeoJSON tiles; frames carry id/lat/lon/heading/date
+# in their properties. The browser can't read them (no CORS), so the server finds frames.
+# Each frame's panorama is an equirectangular tile pyramid at <tour>/panorama-tiles/<id>/L_col_row.jpg
+# (1-based; level L is 2^L x 2^(L-1) tiles of 1024 px). Pano column at the centre is the camera
+# heading, so a compass bearing b is the viewer's hlookat b - heading (checked against the viewer
+# 2026-11-25). The lab may use the imagery with a citation, so every saved still has it burned in.
+_dt_tiles = {}  # (x, y) -> list of frame dicts
+DT_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{8,100}")
 
 
 def _dt_tile(base, x, y):
@@ -455,14 +461,26 @@ def _dt_tile(base, x, y):
             for f in r.json().get("features", []):
                 pr = f.get("properties") or {}
                 if "lat" in pr and "lon" in pr:
-                    pts.append((float(pr["lat"]), float(pr["lon"]), str(pr.get("date", ""))[:10]))
+                    pts.append({"id": str(pr.get("id", "")), "lat": float(pr["lat"]), "lon": float(pr["lon"]),
+                                "heading": float(pr.get("heading") or 0), "date": str(pr.get("date", ""))[:10]})
         elif r.status_code != 404:
             raise RuntimeError(f"360 tile {x}/{y}: HTTP {r.status_code}")
         _dt_tiles[(x, y)] = pts
     return _dt_tiles[(x, y)]
 
 
-def dt360_nearest(ds, lat, lon):
+def _dist_m(lat1, lon1, lat2, lon2):
+    return 6371000 * math.hypot(math.radians(lat2 - lat1), math.radians(lon2 - lon1) * math.cos(math.radians(lat1)))
+
+
+def _bearing(lat1, lon1, lat2, lon2):
+    p1, p2, dl = math.radians(lat1), math.radians(lat2), math.radians(lon2 - lon1)
+    y = math.sin(dl) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
+    return math.degrees(math.atan2(y, x)) % 360
+
+
+def _dt_frames_near(ds, lat, lon):
     base = ds.dt360_tiles
     if not base:
         raise BadRequest("no 360 drive for this dataset")
@@ -471,16 +489,208 @@ def dt360_nearest(ds, lat, lon):
     n = 2 ** 15
     x = int((lon + 180) / 360 * n)
     y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
-    best = None
+    out = []
     for dx in (-1, 0, 1):
         for dy in (-1, 0, 1):
-            for fl, fo, date in _dt_tile(base, x + dx, y + dy):
-                d = 6371000 * math.hypot(math.radians(fl - lat), math.radians(fo - lon) * math.cos(math.radians(lat)))
-                if best is None or d < best[0]:
-                    best = (d, date)
+            out.extend(_dt_tile(base, x + dx, y + dy))
+    return out
+
+
+def dt360_nearest(ds, lat, lon):
+    best = min(_dt_frames_near(ds, lat, lon), key=lambda f: _dist_m(lat, lon, f["lat"], f["lon"]), default=None)
     if best is None:
         return {"distance_m": None, "date": None}
-    return {"distance_m": round(best[0]), "date": best[1]}
+    return {"distance_m": round(_dist_m(lat, lon, best["lat"], best["lon"])), "date": best["date"]}
+
+
+def _msgpack(buf):
+    """Just enough msgpack to read the viewer's share links (arrays, maps, strings, numbers, nil/bool)."""
+    import struct
+    pos = 0
+
+    def take(n):
+        nonlocal pos
+        if pos + n > len(buf):
+            raise ValueError("short")
+        v = buf[pos:pos + n]
+        pos += n
+        return v
+
+    def one(depth=0):
+        if depth > 8:
+            raise ValueError("too deep")
+        t = take(1)[0]
+        if t <= 0x7f: return t
+        if t >= 0xe0: return t - 256
+        if 0x90 <= t <= 0x9f: return [one(depth + 1) for _ in range(t & 0x0f)]
+        if 0x80 <= t <= 0x8f: return {one(depth + 1): one(depth + 1) for _ in range(t & 0x0f)}
+        if 0xa0 <= t <= 0xbf: return take(t & 0x1f).decode("utf-8", "replace")
+        simple = {0xc0: None, 0xc2: False, 0xc3: True}
+        if t in simple: return simple[t]
+        fmts = {0xca: ">f", 0xcb: ">d", 0xcc: ">B", 0xcd: ">H", 0xce: ">I", 0xcf: ">Q",
+                0xd0: ">b", 0xd1: ">h", 0xd2: ">i", 0xd3: ">q"}
+        if t in fmts:
+            f = fmts[t]
+            return struct.unpack(f, take(struct.calcsize(f)))[0]
+        if t in (0xd9, 0xda, 0xdb):
+            n = struct.unpack({0xd9: ">B", 0xda: ">H", 0xdb: ">I"}[t], take({0xd9: 1, 0xda: 2, 0xdb: 4}[t]))[0]
+            return take(n).decode("utf-8", "replace")
+        if t in (0xdc, 0xdd):
+            n = struct.unpack(">H" if t == 0xdc else ">I", take(2 if t == 0xdc else 4))[0]
+            if n > 64:
+                raise ValueError("array too long")
+            return [one(depth + 1) for _ in range(n)]
+        raise ValueError(f"msgpack type {t:#x}")
+    return one()
+
+
+def dt360_parse_share(link):
+    """A viewer Share link -> (frame id, hlookat, vlookat, fov). The share value is base64 msgpack
+    [version, [id, heading, height, lat, lon, date, ?, tileFormat], [hlookat, vlookat, fov], ...]."""
+    import base64
+    q = parse_qs(urlparse(str(link).strip()).query)
+    val = (q.get("share") or [""])[0]
+    if not val:
+        raise BadRequest("That isn't a 360 viewer Share link (it has no share= part).")
+    try:
+        data = _msgpack(base64.b64decode(val + "=" * (-len(val) % 4)))
+        fid = str(data[1][0])
+        h, v, fov = (float(x) for x in data[2][:3])
+    except (ValueError, TypeError, IndexError, KeyError) as e:
+        raise BadRequest(f"Couldn't read that Share link ({e}).")
+    if not DT_ID.fullmatch(fid):
+        raise BadRequest("Share link has a bad frame id.")
+    return fid, h, v, fov
+
+
+def _dt_render(pano_base, fid, h, v, hfov, W=1600, H=1000):
+    import io
+    from concurrent.futures import ThreadPoolExecutor
+    import numpy as np
+    from PIL import Image
+    # Pick the pyramid level whose resolution covers the output (level 4 = 16384 px around).
+    level = 3 if (360 / hfov) * W <= 8192 * 1.25 else 4
+    T, cols, rows = 1024, 2 ** level, 2 ** (level - 1)
+    PW, PH = cols * T, rows * T
+    f = (W / 2) / math.tan(math.radians(hfov) / 2)
+    X, Y = np.meshgrid(np.arange(W) - (W - 1) / 2, np.arange(H) - (H - 1) / 2)
+    Z = np.full_like(X, f)
+    p = math.radians(v)  # krpano vlookat: positive looks down
+    Y2, Z2 = Y * math.cos(p) + Z * math.sin(p), -Y * math.sin(p) + Z * math.cos(p)
+    yaw = np.arctan2(X, Z2) + math.radians(h)
+    pitch = np.arctan2(Y2, np.hypot(X, Z2))
+    u = np.clip(((yaw / (2 * math.pi) + 0.5) % 1.0) * PW, 0, PW - 1.001)
+    w = np.clip((pitch / math.pi + 0.5) * PH, 0, PH - 1.001)
+    tc, tr = (u // T).astype(int), (w // T).astype(int)
+    need = sorted(set(zip(tc.ravel().tolist(), tr.ravel().tolist())))
+
+    def get(cr):
+        r = requests.get(f"{pano_base}/{fid}/{level}_{cr[0] + 1}_{cr[1] + 1}.jpg", timeout=30)
+        if r.status_code != 200:
+            raise RuntimeError(f"360 picture tile {level}_{cr[0] + 1}_{cr[1] + 1}: HTTP {r.status_code}")
+        return cr, np.asarray(Image.open(io.BytesIO(r.content)).convert("RGB"))
+    with ThreadPoolExecutor(8) as ex:
+        tiles = dict(ex.map(get, need))
+    out = np.zeros((H, W, 3), np.uint8)
+    for (c, r_), img in tiles.items():
+        m = (tc == c) & (tr == r_)
+        out[m] = img[(w[m] - r_ * T).astype(int), (u[m] - c * T).astype(int)]
+    return Image.fromarray(out)
+
+
+def _burn_citation(img, lines):
+    from PIL import ImageDraw, ImageFont
+    d = ImageDraw.Draw(img)
+    size = max(14, img.width // 64)
+    font = None
+    for fp in ("/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/System/Library/Fonts/Supplemental/Arial.ttf",
+               "/Library/Fonts/Arial.ttf"):
+        try:
+            font = ImageFont.truetype(fp, size)
+            break
+        except OSError:
+            continue
+    if font is None:
+        font = ImageFont.load_default(size=size)
+    pad, gap = size // 2, size // 4
+    boxes = [d.textbbox((0, 0), t, font=font) for t in lines]
+    tw = max(b[2] - b[0] for b in boxes)
+    th = sum(b[3] - b[1] for b in boxes) + gap * (len(lines) - 1)
+    x1, y1 = img.width - size // 2, img.height - size // 2
+    x0, y0 = x1 - tw - 2 * pad, y1 - th - 2 * pad
+    d.rounded_rectangle((x0, y0, x1, y1), radius=size // 3, fill=(26, 26, 26))
+    y = y0 + pad
+    for t, b in zip(lines, boxes):
+        d.text((x1 - pad - (b[2] - b[0]), y - b[1]), t, font=font, fill=(255, 255, 255))
+        y += (b[3] - b[1]) + gap
+    return img
+
+
+def save_dt360(ds, b, who):
+    """Save a still from the DebrisTech 360 drive into the building's photo folder, with the
+    citation burned into the bottom-right corner. Without a share link it faces the building
+    from the nearest frame; with one it uses that frame and angle (the frame must be near)."""
+    import io
+    if not ds.dt360_tiles or not ds.photos:
+        raise BadRequest("360 saving is not set up for this dataset")
+    try:
+        row = int(b.get("row"))
+    except (TypeError, ValueError):
+        raise BadRequest("bad row")
+    rec = next((r for r in ds.all_rows() if r.get("_row") == row), None)
+    if rec is None:
+        raise BadRequest("unknown row")
+    try:
+        blat, blon = float(rec.get("latitude")), float(rec.get("longitude"))
+    except (TypeError, ValueError):
+        raise BadRequest("this building has no coordinates")
+    folders = photo_folders(ds)["folders"]
+    folder = b.get("folder") or ""
+    if folder and folder not in folders:
+        raise BadRequest("unknown photo folder")
+    if not folder:
+        folder = safe_folder_name(rec.get("complete_address") or rec.get("complete address") or f"row {row}")
+        if not folder:
+            raise BadRequest("this building has no address for a photo folder")
+    frames = _dt_frames_near(ds, blat, blon)
+    near_m = float(CFG.get("dt360_near_m", 150))
+    if b.get("share"):
+        fid, h, v, fov = dt360_parse_share(b["share"])
+        fr = next((f for f in frames if f["id"] == fid), None)
+        if fr is None or _dist_m(blat, blon, fr["lat"], fr["lon"]) > near_m:
+            raise BadRequest(f"That Share link is for a spot more than {near_m:.0f} m from this building. "
+                             "Check you have the right building open.")
+        how = "share"
+    else:
+        fr = min(frames, key=lambda f: _dist_m(blat, blon, f["lat"], f["lon"]), default=None)
+        if fr is None or _dist_m(blat, blon, fr["lat"], fr["lon"]) > near_m:
+            raise BadRequest(f"The 360 drive didn't pass within {near_m:.0f} m of this building.")
+        h, v, fov = (_bearing(fr["lat"], fr["lon"], blat, blon) - fr["heading"]) % 360, -8.0, 100.0
+        how = "facing"
+    if not DT_ID.fullmatch(fr["id"]):
+        raise BadRequest("bad frame id in the 360 index")
+    v = max(-90.0, min(90.0, v))
+    fov = max(30.0, min(120.0, fov))
+    pano_base = ds.dt360_tiles.rstrip("/").rsplit("/", 2)[0] + "/panorama-tiles"
+    img = _dt_render(pano_base, fr["id"], h, v, fov)
+    date = fr["date"] or "undated"
+    label = ds.dt360_label
+    _burn_citation(img, ["Imagery © DebrisTech 360° viewer",
+                         f"{label + ', ' if label else ''}captured {date}"])
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=90)
+    bearing = (h + fr["heading"]) % 360
+    fname = f"DT360_after_{date}_h{bearing:03.0f}.jpg"
+    path = quote(f"{ds.photos}/{folder}/{fname}")
+    it = graph("PUT", f"{ds.drive}/root:/{path}:/content?@microsoft.graph.conflictBehavior=rename",
+               data=buf.getvalue(), headers_extra={"Content-Type": "image/jpeg"})
+    ds._photo_folders = None
+    dist = round(_dist_m(blat, blon, fr["lat"], fr["lon"]))
+    audit({"dataset": ds.key, "op": "dt360", "row": row, "who": who, "folder": folder, "file": it.get("name"),
+           "frame": fr["id"], "how": how, "bearing": round(bearing, 1), "pitch": round(v, 1), "fov": round(fov),
+           "distance_m": dist})
+    return 200, {"file": it.get("name"), "webUrl": it.get("webUrl"), "folder": folder, "date": date,
+                 "bearing": round(bearing), "distance_m": dist}
 
 
 class BadRequest(Exception):
@@ -595,6 +805,9 @@ class Handler(BaseHTTPRequestHandler):
             parts, ds, rest = self.route()
             if parts is None or not self.authed():
                 return parts is None and self.send(404, {"error": "not_found"})
+            if ds is not None and rest == ["dt360-save"]:
+                code, out = save_dt360(ds, self.body(), self.headers.get("X-Entered-By", ""))
+                return self.send(code, out)
             if ds is not None and rest == ["streetview-save"]:
                 code, out = save_streetview(ds, self.body(), self.headers.get("X-Entered-By", ""))
                 return self.send(code, out)

@@ -222,20 +222,20 @@ button { cursor: pointer; }
   background: #1a1a1a; color: #fff; font: 600 11px/1.35 system-ui, sans-serif; padding: 4px 8px; border-radius: 4px; text-align: right; }
 #ref-dt360 .dt-bar { width: 100%; padding: 6px 10px; font-size: 12px; color: var(--text-muted);
   border-top: 1px solid var(--border); background: var(--surface-alt); }
-#ref-dt360 .dt-bar a { color: var(--accent); }
+#ref-dt360 .dt-bar a, #ref-dt360 .sv-bar a { color: var(--accent); }
 #ref-dt360 .dt-empty { margin: auto; padding: 20px; text-align: center; font-size: 13px; color: var(--text-muted); max-width: 440px; }
 #ref-sv .sv-pano { width: 100%; flex: 1; min-height: 0; }
-#ref-sv .sv-bar { width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 10px;
+#ref-sv .sv-bar, #ref-dt360 .sv-bar { width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 10px;
   border-top: 1px solid var(--border); background: var(--surface-alt); font-size: 12px; color: var(--text-muted); }
-#ref-sv .sv-bar button { font: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 4px;
+#ref-sv .sv-bar button, #ref-dt360 .sv-bar button { font: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 4px;
   border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
-#ref-sv .sv-bar button:disabled { opacity: .5; cursor: default; }
-#ref-sv .sv-msg { flex: 1 1 160px; min-width: 0; }
-#ref-sv .sv-msg.ok { color: var(--success); }
-#ref-sv .sv-msg.err { color: var(--danger, #b3261e); }
-#ref-sv .sv-paste { flex: 2 1 220px; min-width: 0; font: inherit; font-size: 12px; padding: 5px 8px;
+#ref-sv .sv-bar button:disabled, #ref-dt360 .sv-bar button:disabled { opacity: .5; cursor: default; }
+#ref-sv .sv-msg, #ref-dt360 .sv-msg { flex: 1 1 160px; min-width: 0; }
+#ref-sv .sv-msg.ok, #ref-dt360 .sv-msg.ok { color: var(--success); }
+#ref-sv .sv-msg.err, #ref-dt360 .sv-msg.err { color: var(--danger, #b3261e); }
+#ref-sv .sv-paste, #ref-dt360 .sv-paste { flex: 2 1 220px; min-width: 0; font: inherit; font-size: 12px; padding: 5px 8px;
   border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); }
-#ref-sv .sv-bar button.sv-sec { background: var(--surface); color: var(--accent); }
+#ref-sv .sv-bar button.sv-sec, #ref-dt360 .sv-bar button.sv-sec { background: var(--surface); color: var(--accent); }
 #ref-sv .sv-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
 #ref-bldphotos { padding: 12px; overflow-y: auto; }
 #ref-bldphotos .bp-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
@@ -1359,14 +1359,46 @@ function updateDT360() {
         '.<br><br><a href="' + e(url) + '" target="_blank" rel="noopener">Open the 360° viewer anyway &#8599;</a></div>';
       return;
     }
-    el.innerHTML = '<div class="dt-frame"><iframe src="' + e(url) + '" allow="fullscreen; clipboard-write" loading="lazy" title="360° street view after the storm"></iframe>' +
+    el.innerHTML = '<div class="dt-frame"><iframe src="' + e(url) + '" allow="fullscreen; clipboard-write; web-share" loading="lazy" title="360° street view after the storm"></iframe>' +
       '<div class="dt-mark">Imagery © DebrisTech 360° viewer<br>St. Louis MO tornado, captured ' + e(d.date || "May 2025") + '</div></div>' +
-      '<div class="dt-bar">DebrisTech 360° drive, captured ' + e(d.date || "May 2025") + ', closest frame ' + d.distance_m + ' m from the building. ' +
-      'The red marker is the building. ' + open + '</div>';
+      '<div class="sv-bar"><span>Captured ' + e(d.date || "May 2025") + ', ' + d.distance_m + ' m from the building (red marker). ' + open + '</span>' +
+      '<button type="button" id="dt-save" onclick="saveDT360(false)">Save facing the building</button>' +
+      '<span class="sv-msg" id="dt-msg">Saves a picture with the DebrisTech citation to this building\'s photos</span></div>' +
+      '<div class="sv-bar"><input class="sv-paste" id="dt-link" placeholder="Different angle? Press Share in the viewer, copy the link and paste it here" ' +
+      'onkeydown="if(event.key===\'Enter\')saveDT360(true)">' +
+      '<button type="button" class="sv-sec" id="dt-save2" onclick="saveDT360(true)">Save this angle</button></div>';
   }).catch(function(err) {
     if (curId !== forId) return;
     el.innerHTML = '<div class="dt-empty">Couldn\'t check the 360° drive: ' + e(err.message) + '<br><br><a href="' + e(url) + '" target="_blank" rel="noopener">Open the 360° viewer &#8599;</a></div>';
   });
+}
+
+function saveDT360(useLink) {
+  var msg = document.getElementById("dt-msg"), btns = [document.getElementById("dt-save"), document.getElementById("dt-save2")];
+  var b = blds.find(function(x) { return x._id === curId; }), forId = curId;
+  function say(t, cls) { if (msg) { msg.textContent = t; msg.className = "sv-msg" + (cls ? " " + cls : ""); } }
+  if (!b || !b._row) return say("Save this building first, then save the picture.", "err");
+  var body = { row: b._row };
+  if (useLink) {
+    var link = (document.getElementById("dt-link").value || "").trim();
+    if (link.indexOf("share=") < 0) return say("Paste the link from the viewer's Share button first (it has share= in it).", "err");
+    body.share = link;
+  }
+  btns.forEach(function(x) { if (x) x.disabled = true; }); say("Saving… (this takes a few seconds)");
+  getPhotoIndex().catch(function() { return {}; }).then(function(idx) {
+    var folder = idx[normalizeAddr(fd.complete_address || "")];
+    if (folder) body.folder = folder;
+    return api("POST", "/dt360-save", body);
+  }).then(function(d) {
+    delete photoCache[d.folder]; photoIndex = null;
+    if (curId === forId) {
+      say("Saved " + d.file + " to Building Photos", "ok");
+      if (useLink) document.getElementById("dt-link").value = "";
+      updateBuildingPhotos();
+    }
+  }).catch(function(err) {
+    say("Couldn't save: " + err.message, "err");
+  }).then(function() { btns.forEach(function(x) { if (x) x.disabled = false; }); });
 }
 
 // ── Building Photos ─────────────────────────────────────────────────
@@ -1421,6 +1453,10 @@ function getPhotos(folder) {
 }
 function photoKind(file) {
   var n = file.replace(/\.[^.]+$/, '').toLowerCase(), view = 'Other';
+  if (n.indexOf('dt360_') === 0) {  // saved from the 360° tab: DT360_after_<date>_h<bearing>
+    var d3 = n.match(/(\d{4}-\d{2}-\d{2})/);
+    return { view: '360° after', time: 'after', date: d3 ? d3[1] : '' };
+  }
   if (n.indexOf('gsv_') === 0) {  // saved with "Save this view": GSV_<before|after>_<date>_h<heading>
     var d = n.match(/(\d{4}-\d{2})/);
     return { view: 'Street View', time: n.indexOf('gsv_after') === 0 ? 'after' : 'before', date: d ? d[1] : '' };
@@ -1455,7 +1491,7 @@ function updateBuildingPhotos() {
 
 function renderPhotos(el, d) {
   var photos = d.photos.map(function(p) { var k = photoKind(p.file); k.p = p; return k; });
-  var views = ['Aerial', 'Front', 'Back', 'Left', 'Right', 'Street View', 'Other'];
+  var views = ['Aerial', 'Front', 'Back', 'Left', 'Right', 'Street View', '360° after', 'Other'];
   var grouped = {};
   views.forEach(function(v) { grouped[v] = { before: [], after: [] }; });
   photos.forEach(function(k) { grouped[k.view][k.time].push(k); });
@@ -1469,7 +1505,7 @@ function renderPhotos(el, d) {
   views.forEach(function(v) {
     var g = grouped[v], nb = g.before.length, na = g.after.length;
     if (!nb && !na) return;
-    html += '<div class="bp-group-label">' + v + (nb && na ? ' &mdash; before &amp; after' : nb ? ' &mdash; before' : ' &mdash; after') + '</div>';
+    html += '<div class="bp-group-label">' + v + (v === '360° after' ? ' (DebrisTech)' : nb && na ? ' &mdash; before &amp; after' : nb ? ' &mdash; before' : ' &mdash; after') + '</div>';
     var all = g.before.concat(g.after);
     html += all.length === 1 ? '<div class="bp-single">' + buildPhotoCard(all[0]) + '</div>'
                              : '<div class="bp-pair">' + all.map(buildPhotoCard).join('') + '</div>';
