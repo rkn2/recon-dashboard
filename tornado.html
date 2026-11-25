@@ -336,8 +336,8 @@ button { cursor: pointer; }
 }
 .hi:hover .tt { display: block; }
 .tt {
-  display: none; position: absolute; bottom: calc(100% + 5px); left: 50%;
-  transform: translateX(-50%); background: var(--text); color: var(--bg);
+  display: none; position: absolute; top: calc(100% + 5px); left: -8px;
+  background: var(--text); color: var(--bg); text-transform: none; letter-spacing: normal;
   font-size: 11px; font-weight: 400; padding: 5px 9px; border-radius: 4px;
   white-space: normal; width: 220px; z-index: 100; line-height: 1.35;
 }
@@ -592,20 +592,20 @@ const S = {
       {k:"complete_address",l:"Complete Address",t:"text",h:"Address if available; coordinates are more accurate"},
       {k:"building_name_listing",l:"NRHP Listing Name",t:"text",h:"National Register listing name"},
       {k:"building_name_current",l:"Current Name",t:"text",h:"Current or alternative name"},
-      {k:"overall_photos_link",l:"Photos Link",t:"text"},
+      {k:"overall_photos_link",l:"Photos Link",t:"text",h:"Name of this building's photo folder. Collect Street View before and after for the front, back, left and right, aerial views from Google Earth Pro's historical imagery, and any Fulcrum photos."},
     ]},
     {id:"basics",t:"Building Basics",d:"Physical characteristics from visual inspection.",f:[
-      {k:"archetype",l:"Archetype (1–15)",t:"select",o:["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"],h:"Nofal archetype: stories, height, construction, roof"},
-      {k:"located_in_historic_district",l:"Historic District",t:"ynu",o:["yes","no","un"]},
-      {k:"occupany_u",l:"Occupancy",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","museum","storage","utilities","misc","not in use"],h:"Occupancy when the event occurred"},
-      {k:"number_stories",l:"Stories",t:"number"},{k:"year_built_u",l:"Year Built",t:"number",h:"First year if range"},
-      {k:"building_area_m2",l:"Area (m²)",t:"number",h:"Ground footprint"},{k:"building_urban_setting",l:"Urban Setting",t:"select",o:["isolated","row_end","row_middle"]},
-      {k:"building_position_on_street",l:"Street Position",t:"select",o:["recessed","right_on_street"]},
-      {k:"buidling_height_m",l:"Height (m)",t:"number"},{k:"first_floor_elevation_m",l:"1st Floor Elev. (m)",t:"number",h:"Ground to top of first floor"},
-      {k:"front_elevation_orientation",l:"Front Orientation",t:"select",o:["n","s","e","w"]},
-      {k:"wall_length_side",l:"Side Length (m)",t:"number"},{k:"wall_length_front",l:"Front Length (m)",t:"number"},
-      {k:"wall_thickness",l:"Wall Thickness (m)",t:"number"},{k:"understory_pct_of_building_footprint",l:"Understory %",t:"number"},
-      {k:"risk_category_16",l:"Risk Category",t:"select",o:["1","2","3","4"]},
+      {k:"archetype",l:"Archetype (1–19)",t:"select",o:["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"],h:"Tornado archetype from Masoomi and van de Lindt's fragility portfolio (the table in the data entry guide). The lab uses 6 for 1 story brick buildings and 19 for 2+ story brick. Put your reasoning in Notes if you're unsure."},
+      {k:"located_in_historic_district",l:"Historic District",t:"ynu",o:["yes","no","un"],h:"Yes or no. Usually only known for well recognized historic buildings."},
+      {k:"occupany_u",l:"Occupancy",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","museum","storage","utilities","misc","not in use"],h:"Use when the tornado hit, by the 2021 IBC chapter 3 categories. A quick search helps when the use isn't obvious."},
+      {k:"number_stories",l:"Stories",t:"number",h:"Count from Street View. Use 1.5 or 2.5 when the front and back differ (for example 2 in back and 1 in front)."},{k:"year_built_u",l:"Year Built",t:"number",h:"Check online sources, a date on the building in Street View, or Zillow (Home Details, then Facts and Features). Use the first year if you find a range, and un if you can't find it."},
+      {k:"building_area_m2",l:"Area (m²)",t:"number",h:"Footprint area in m², traced around the corners with the Polygon tab of Google Earth Pro's Ruler tool."},{k:"building_urban_setting",l:"Urban Setting",t:"select",o:["isolated","row_end","row_middle"],h:"Isolated if it stands alone. row_middle or row_end if it's joined to its neighbors, like a downtown row building."},
+      {k:"building_position_on_street",l:"Street Position",t:"select",o:["recessed","right_on_street"],h:"Recessed if there's a yard or setback in front, right_on_street if the front wall is at the sidewalk."},
+      {k:"buidling_height_m",l:"Height (m)",t:"number",h:"Best estimate in meters from Street View or Google Earth. A standard door (about 7 ft or 2.1 m) or the buildings next door help with scale."},{k:"first_floor_elevation_m",l:"1st Floor Elev. (m)",t:"number",h:"Ground to top of first floor"},
+      {k:"front_elevation_orientation",l:"Front Orientation",t:"select",o:["n","s","e","w"],h:"Direction the front faces. If it's at an angle, pick the closest one. Front, back, left and right later in the form all follow from this, so stay consistent."},
+      {k:"wall_length_side",l:"Side Length (m)",t:"number",h:"Length in m of a side wall (not the front), from Google Earth Pro's Ruler, Line tab. For odd shapes the longer measurement is fine."},{k:"wall_length_front",l:"Front Length (m)",t:"number",h:"Length in m of the front wall, from Google Earth Pro's Ruler, Line tab."},
+      {k:"wall_thickness",l:"Wall Thickness (m)",t:"number",h:"Best guess in m, since you usually can't see it. Use 0.2 for typical houses and similar buildings."},{k:"understory_pct_of_building_footprint",l:"Understory %",t:"number"},
+      {k:"risk_category_16",l:"Risk Category",t:"select",o:["1","2","3","4"],h:"Risk category from IBC Table 1604.5. Most buildings are 2 or 3."},
       {k:"building_low_rise",l:"Low Rise",t:"yn",o:["yes","no"],h:"4 stories or less"},
       {k:"building_open",l:"Open",t:"text"},{k:"building_enclosed",l:"Enclosed",t:"text"},
       {k:"building_regular_shape",l:"Regular Shape",t:"text"},{k:"exposure_category",l:"Exposure Cat.",t:"text"},
@@ -613,100 +613,100 @@ const S = {
     ]},
     {id:"structural",t:"Structural Systems",d:"Uncertainty: 1 = certain, 2 = probable, 3 = guess.",f:[
       {k:"roof_shape_u",l:"Roof Shape",t:"select",o:["complex","flat","gable","gable-hip_combo","gambrel","hip","mansard","monoslope","un","ot"],h:"'complex' if multiple types; detail in notes"},
-      {k:"roof_slope_u",l:"Roof Slope (°)",t:"select",o:["0","30","45","60"]},
-      {k:"construction_type_u",l:"Construction Type",t:"select",o:["wooden_light_frame","wood_frame","wooden_ot","steel_light_frame","steel_frame_masonry_shear_wall","steel_frame","concrete_un","rf_masonry","masonry_un","un","ot"]},
-      {k:"construction_type_u_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_wall",l:"MWFRS Wall",t:"select",o:["wall_diaphragm_wood","wall_diaphragm_masonry","wall_diaphragm_steel","wall_diaphragm_concrete","x_bracing_wall","moment_frame","not_applicable","un","ot"],h:"Main wind force resisting system — walls"},
-      {k:"mwfrs_u_wall_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_roof",l:"MWFRS Roof",t:"select",o:["roof_diaphragm_wood","roof_diaphragm_steel","roof_diaphragm_metal","roof_diaphragm_conc","un","not_applicable","ot"]},
-      {k:"mwfrs_u_roof_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_moment_frame",l:"Moment Frame",t:"ynu",o:["yes","no","un"]},
+      {k:"roof_slope_u",l:"Roof Slope (°)",t:"select",o:["0","30","45","60"],h:"Roof pitch in degrees. If there are several slopes, use the one covering most of the building."},
+      {k:"construction_type_u",l:"Construction Type",t:"select",o:["wooden_light_frame","wood_frame","wooden_ot","steel_light_frame","steel_frame_masonry_shear_wall","steel_frame","concrete_un","rf_masonry","masonry_un","un","ot"],h:"Judge from the decade it was built, what the walls are made of and how it's used. Historic brick buildings will almost always be masonry_un."},
+      {k:"construction_type_u_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_wall",l:"MWFRS Wall",t:"select",o:["wall_diaphragm_wood","wall_diaphragm_masonry","wall_diaphragm_steel","wall_diaphragm_concrete","x_bracing_wall","moment_frame","not_applicable","un","ot"],h:"Main wind force resisting system for the walls, meaning what the walls are made of that resists the wind. Best approximation is fine."},
+      {k:"mwfrs_u_wall_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_roof",l:"MWFRS Roof",t:"select",o:["roof_diaphragm_wood","roof_diaphragm_steel","roof_diaphragm_metal","roof_diaphragm_conc","un","not_applicable","ot"],h:"Main wind force resisting system for the roof, meaning what the roof is made of that resists the wind. Best approximation is fine."},
+      {k:"mwfrs_u_roof_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_moment_frame",l:"Moment Frame",t:"ynu",o:["yes","no","un"],h:"Whether it has a moment frame. Historic buildings usually don't."},
       {k:"mwfrs_u_unc",l:"MWFRS Overall Cert.",t:"unc"},
-      {k:"masonry_leaves",l:"Masonry Leaves",t:"select",o:["single_leaf","double_leaf","triple_leaf","un","not_applicable"]},
+      {k:"masonry_leaves",l:"Masonry Leaves",t:"select",o:["single_leaf","double_leaf","triple_leaf","un","not_applicable"],h:"Layers of masonry in the walls. Unreinforced masonry is almost always double_leaf. not_applicable if it isn't masonry."},
       {k:"masonry_leaves_unc",l:"Certainty",t:"unc"},
-      {k:"structural_wall_system_u",l:"Struct. Wall System",t:"select",o:["solid_brick_wythe","masonry_block_unreinforced","masonry_block_reinforced","wood_frame","steel_cold_formed","un"]},
-      {k:"foundation_type_u",l:"Foundation",t:"select",o:["slab_on_grade","masonry_stem_wall","concrete_un","masonry_un","stone","un","ot"]},
+      {k:"structural_wall_system_u",l:"Struct. Wall System",t:"select",o:["solid_brick_wythe","masonry_block_unreinforced","masonry_block_reinforced","wood_frame","steel_cold_formed","un"],h:"From imagery and any historic listing documents. For historic unreinforced masonry this is masonry_block_unreinforced."},
+      {k:"foundation_type_u",l:"Foundation",t:"select",o:["slab_on_grade","masonry_stem_wall","concrete_un","masonry_un","stone","un","ot"],h:"Often hard to tell. Look at Street View and any historic listing documents, and use un if you can't see it."},
       {k:"foundation_type_u_unc",l:"Certainty",t:"unc"},
-      {k:"wall_anchorage_type_u",l:"Wall Anchorage",t:"select",o:["anchor_bolts","metal_straps","concrete_nails","not_applicable","un","ot"]},
+      {k:"wall_anchorage_type_u",l:"Wall Anchorage",t:"select",o:["anchor_bolts","metal_straps","concrete_nails","not_applicable","un","ot"],h:"Can't be seen from outside for almost every building, so un."},
       {k:"wall_anchorage_type_u_unc",l:"Certainty",t:"unc"},
     ]},
     {id:"walls",t:"Wall Envelope",d:"Substrate, cladding, soffit.",f:[
-      {k:"wall_substrate_u",l:"Substrate",t:"select",o:["wooden_sheathing_cont","wooden_sheathing_corn","wooden_planks","sheathing_insulate","foam_board","wooden_panels","wooden_un","metal_panes","not_applicable","un","ot"]},
+      {k:"wall_substrate_u",l:"Substrate",t:"select",o:["wooden_sheathing_cont","wooden_sheathing_corn","wooden_planks","sheathing_insulate","foam_board","wooden_panels","wooden_un","metal_panes","not_applicable","un","ot"],h:"For historic unreinforced masonry use not_applicable, since the masonry itself acts as the substrate."},
       {k:"wall_substrate_u_unc",l:"Certainty",t:"unc"},
-      {k:"wall_cladding_u",l:"Cladding",t:"select",o:["brick_veneer","brick","brick_un","wood_plank","wood_ot","wood_un","fiber_cement_board","steel_corrugated_panel","steel_un","steel_ot","vinyl_panel","vinyl_ot","aluminum","weatherboard","stone_ot","stucco","not_applicable","un","ot"]},
+      {k:"wall_cladding_u",l:"Cladding",t:"select",o:["brick_veneer","brick","brick_un","wood_plank","wood_ot","wood_un","fiber_cement_board","steel_corrugated_panel","steel_un","steel_ot","vinyl_panel","vinyl_ot","aluminum","weatherboard","stone_ot","stucco","not_applicable","un","ot"],h:"Material on the outside of the walls, like brick, stone, stucco, vinyl or wood."},
       {k:"wall_cladding_u_unc",l:"Certainty",t:"unc"},
-      {k:"soffit_type_u",l:"Soffit Type",t:"select",o:["vinyl","metal","wood","un","not_applicable"]},
-      {k:"soffit_present_u",l:"Soffit Present",t:"yn",o:["yes","no"]},
+      {k:"soffit_type_u",l:"Soffit Type",t:"select",o:["vinyl","metal","wood","un","not_applicable"],h:"A soffit covers the underside of the roof overhang. Check the latest imagery, since renovations change it. not_applicable if there's no soffit."},
+      {k:"soffit_present_u",l:"Soffit Present",t:"yn",o:["yes","no"],h:"Whether there's a soffit at all. Some buildings are built without one."},
     ]},
     {id:"fen",t:"Fenestration",d:"Window percentages and protection by elevation.",f:[
-      {k:"wall_fenesteration_per_front",l:"% Front",t:"pct"},{k:"wall_fenesteration_per_back",l:"% Back",t:"pct"},
-      {k:"wall_fenesteration_per_right",l:"% Right",t:"pct"},{k:"wall_fenesteration_per_left",l:"% Left",t:"pct"},
-      {k:"wall_fenestration_per_n",l:"% N",t:"pct"},{k:"wall_fenestration_per_s",l:"% S",t:"pct"},
-      {k:"wall_fenestration_per_e",l:"% E",t:"pct"},{k:"wall_fenestration_per_w",l:"% W",t:"pct"},
-      {k:"wall_fenesteration_protection_front",l:"Prot. Front",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_per_front",l:"% Front",t:"pct",h:"Percent of the front wall that's windows and doors, 0 to 100. Sides follow the front orientation you chose."},{k:"wall_fenesteration_per_back",l:"% Back",t:"pct",h:"Percent of the back wall that's windows and doors, 0 to 100. Sides follow the front orientation you chose."},
+      {k:"wall_fenesteration_per_right",l:"% Right",t:"pct",h:"Percent of the right wall that's windows and doors, 0 to 100. Sides follow the front orientation you chose."},{k:"wall_fenesteration_per_left",l:"% Left",t:"pct",h:"Percent of the left wall that's windows and doors, 0 to 100. Sides follow the front orientation you chose."},
+      {k:"wall_fenestration_per_n",l:"% N",t:"pct",h:"Percent of the north facing wall that's windows and doors, 0 to 100."},{k:"wall_fenestration_per_s",l:"% S",t:"pct",h:"Percent of the south facing wall that's windows and doors, 0 to 100."},
+      {k:"wall_fenestration_per_e",l:"% E",t:"pct",h:"Percent of the east facing wall that's windows and doors, 0 to 100."},{k:"wall_fenestration_per_w",l:"% W",t:"pct",h:"Percent of the west facing wall that's windows and doors, 0 to 100."},
+      {k:"wall_fenesteration_protection_front",l:"Prot. Front",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
       {k:"wall_fenesteration_protection_front_unc",l:"Cert.",t:"unc"},
-      {k:"wall_fenesteration_protection_back",l:"Prot. Back",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_protection_back",l:"Prot. Back",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
       {k:"wall_fenesteration_protection_back_unc",l:"Cert.",t:"unc"},
-      {k:"wall_fenesteration_protection_right",l:"Prot. Right",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_protection_right",l:"Prot. Right",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
       {k:"wall_fenesteration_protection_right_unc",l:"Cert.",t:"unc"},
-      {k:"wall_fenesteration_protection_left",l:"Prot. Left",t:"ynu",o:["yes","no","un"]},
+      {k:"wall_fenesteration_protection_left",l:"Prot. Left",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
       {k:"wall_fenesteration_protection_left_unc",l:"Cert.",t:"unc"},
-      {k:"fenestration_protection_type_front",l:"Type Front",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
-      {k:"fenestration_protection_type_back",l:"Type Back",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
-      {k:"fenestration_protection_type_right",l:"Type Right",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
-      {k:"fenestration_protection_type_left",l:"Type Left",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"]},
+      {k:"fenestration_protection_type_front",l:"Type Front",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
+      {k:"fenestration_protection_type_back",l:"Type Back",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
+      {k:"fenestration_protection_type_right",l:"Type Right",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
+      {k:"fenestration_protection_type_left",l:"Type Left",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
       {k:"fenestration_protection_type_unc",l:"Prot. Type Cert.",t:"unc"},
     ]},
     {id:"doors",t:"Doors & Openings",d:"Large doors (garage) and standard doors.",f:[
-      {k:"large_door_present_front",l:"Large Front",t:"ynu",o:["yes","no","un"]},
-      {k:"large_door_present_back",l:"Large Back",t:"ynu",o:["yes","no","un"]},
-      {k:"large_door_present_right",l:"Large Right",t:"ynu",o:["yes","no","un"]},
-      {k:"large_door_present_left",l:"Large Left",t:"ynu",o:["yes","no","un"]},
-      {k:"door_present_n",l:"Door N",t:"ynu",o:["yes","no","un"]},{k:"door_present_s",l:"Door S",t:"ynu",o:["yes","no","un"]},
-      {k:"door_present_e",l:"Door E",t:"ynu",o:["yes","no","un"]},{k:"door_present_w",l:"Door W",t:"ynu",o:["yes","no","un"]},
+      {k:"large_door_present_front",l:"Large Front",t:"ynu",o:["yes","no","un"],h:"Large doors means garage doors only. yes, no or un."},
+      {k:"large_door_present_back",l:"Large Back",t:"ynu",o:["yes","no","un"],h:"Large doors means garage doors only. yes, no or un."},
+      {k:"large_door_present_right",l:"Large Right",t:"ynu",o:["yes","no","un"],h:"Large doors means garage doors only. yes, no or un."},
+      {k:"large_door_present_left",l:"Large Left",t:"ynu",o:["yes","no","un"],h:"Large doors means garage doors only. yes, no or un."},
+      {k:"door_present_n",l:"Door N",t:"ynu",o:["yes","no","un"],h:"Garage doors on the north side. yes, no or un."},{k:"door_present_s",l:"Door S",t:"ynu",o:["yes","no","un"],h:"Garage doors on the south side. yes, no or un."},
+      {k:"door_present_e",l:"Door E",t:"ynu",o:["yes","no","un"],h:"Garage doors on the east side. yes, no or un."},{k:"door_present_w",l:"Door W",t:"ynu",o:["yes","no","un"],h:"Garage doors on the west side. yes, no or un."},
       {k:"large_door_opening_type_",l:"Large Door Type",t:"text"},{k:"opening_type",l:"Opening Type",t:"text"},
     ]},
     {id:"roof",t:"Roof System",d:"Structure, attachment, substrate, cover.",f:[
-      {k:"roof_system_u",l:"Roof System",t:"select",o:["steel","concrete_slab","wooden_rafters","wooden_trusses","wooden_un","metal_trusses","un","ot"]},
+      {k:"roof_system_u",l:"Roof System",t:"select",o:["steel","concrete_slab","wooden_rafters","wooden_trusses","wooden_un","metal_trusses","un","ot"],h:"Best guess at the roof's structure (rafters, trusses), which is hard to see from outside."},
       {k:"roof_system_u_unc",l:"Certainty",t:"unc"},
-      {k:"r2wall_attachment_u",l:"Roof-to-Wall",t:"select",o:["nails","metal_strap","bolted_connection","welded_connection","connection_un","not_applicable","un","ot"]},
+      {k:"r2wall_attachment_u",l:"Roof-to-Wall",t:"select",o:["nails","metal_strap","bolted_connection","welded_connection","connection_un","not_applicable","un","ot"],h:"How the roof connects to the walls. You can't see this from outside, so un."},
       {k:"r2wall_attachment_type_unc",l:"Certainty",t:"unc"},
-      {k:"roof_substrate_type_u",l:"Substrate",t:"select",o:["plywood","dimensional lumber","metal deck","concrete","none","ot","un"]},
+      {k:"roof_substrate_type_u",l:"Substrate",t:"select",o:["plywood","dimensional lumber","metal deck","concrete","none","ot","un"],h:"You can't see it, so go by when it was built and the roof system. Usually dimensional lumber."},
       {k:"roof_substrate_type_u_unc",l:"Certainty",t:"unc"},
-      {k:"roof_cover_u",l:"Cover",t:"select",o:["ashphalt","corrugated_metal","standing_seam_metal","tiles_clay","tiles_concrete","slate","wooden_shingles","un","ot"]},
-      {k:"overhang_length_u",l:"Overhang (m)",t:"number",h:"0 if none"},{k:"parapet_height_m",l:"Parapet (m)",t:"number",h:"0 if none"},
+      {k:"roof_cover_u",l:"Cover",t:"select",o:["ashphalt","corrugated_metal","standing_seam_metal","tiles_clay","tiles_concrete","slate","wooden_shingles","un","ot"],h:"What's on top of the roof, from imagery (asphalt, clay tile, metal, slate). Search pictures of each if you're unsure."},
+      {k:"overhang_length_u",l:"Overhang (m)",t:"number",h:"Roof overhang in m, best guess from imagery. 0 if none."},{k:"parapet_height_m",l:"Parapet (m)",t:"number",h:"Parapet height in m, best guess. Parapets are usually at least about 0.75 m. 0 if none."},
       {k:"secondary_water_barrier_u",l:"2nd Water Barrier",t:"text"},
     ]},
     {id:"retro",t:"Retrofit & Status",d:"Retrofits, hazards, overall status.",f:[
-      {k:"retrofit_present_u",l:"Retrofit Present",t:"ynu",o:["yes","no","un"]},
-      {k:"retrofit_year_u",l:"Year",t:"number"},{k:"retrofit_type_u",l:"Type",t:"select",o:["building_addition","reinforced_masonry","steel_bracing","un","ot"]},
+      {k:"retrofit_present_u",l:"Retrofit Present",t:"ynu",o:["yes","no","un"],h:"Yes or no. Scroll through Google Earth Pro's historical imagery to spot additions."},
+      {k:"retrofit_year_u",l:"Year",t:"number",h:"Year of any major renovation, addition or structural retrofit. Separate several years with commas."},{k:"retrofit_type_u",l:"Type",t:"select",o:["building_addition","reinforced_masonry","steel_bracing","un","ot"],h:"Kind of retrofit, like a building addition or structural restoration."},
       {k:"retrofit_type_unc_u",l:"Certainty",t:"unc"},
       {k:"retrofit_type_1_u",l:"Retrofit 1",t:"text"},{k:"reotrofit_2_u",l:"Retrofit 2",t:"text"},
-      {k:"hazards_present_u",l:"Hazards",t:"select",o:["flood","rain","wind","surge","tree-fall","wind-borne_debris","un"]},
-      {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor_damage","moderate_damage","major_damage","destroyed"]},
+      {k:"hazards_present_u",l:"Hazards",t:"select",o:["flood","rain","wind","surge","tree-fall","wind-borne_debris","un"],h:"From Fulcrum's Hazards Present if the building is there. Otherwise assume wind, plus tree fall if aerial views show fallen trees nearby."},
+      {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor_damage","moderate_damage","major_damage","destroyed"],h:"From Fulcrum's Wind Damage Rating, or your best guess from imagery if the building isn't in Fulcrum."},
     ]},
     {id:"dmg",t:"Damage Assessment",d:"Component ratings (0–5) and damage % by elevation.",f:[
-      {k:"wind_damage_rating_u",l:"Wind Damage",t:"rtg"},{k:"damage_indicator_u",l:"Damage Indicator",t:"rtg"},
-      {k:"degree_of_damage_u",l:"Degree of Damage",t:"rtg"},{k:"wind_damage_details_u",l:"Wind Damage Details",t:"ta"},
-      {k:"roof_structure_damage_u",l:"Roof Struct.",t:"rtg"},{k:"roof_structure_damage_u_per",l:"Roof Struct. %",t:"pct"},
-      {k:"roof_susbtrate_damage_u",l:"Roof Substr.",t:"rtg"},{k:"roof_substrate_damage_per",l:"Roof Substr. %",t:"pct"},
-      {k:"foundation_failure_u",l:"Foundation",t:"rtg"},{k:"foundatio_failure_per_u",l:"Foundation %",t:"pct"},
-      {k:"wall_structure_damage_u",l:"Wall Struct. Overall",t:"rtg"},
-      {k:"wall_structure_damage_per_front",l:"Wall Str. % Front",t:"pct"},{k:"wall_structure_damage_per_back",l:"Wall Str. % Back",t:"pct"},
-      {k:"wall_structure_damage_per_left",l:"Wall Str. % Left",t:"pct"},{k:"wall_structure_damage_per_right",l:"Wall Str. % Right",t:"pct"},
-      {k:"wall_structure_damage_n",l:"Wall Str. % N",t:"pct"},{k:"wall_structure_damage_s",l:"Wall Str. % S",t:"pct"},
-      {k:"wall_structure_damage_e",l:"Wall Str. % E",t:"pct"},{k:"wall_structure_damage_w",l:"Wall Str. % W",t:"pct"},
-      {k:"wall_substrate_damage_u",l:"Wall Substr. Overall",t:"rtg"},
-      {k:"wall_substrate_damage_per_front",l:"Substr. % Front",t:"pct"},{k:"wall_substrate_damage_per_back",l:"Substr. % Back",t:"pct"},
-      {k:"wall_substrate_damage_per_right",l:"Substr. % Right",t:"pct"},{k:"wall_substrate_damage_per_left",l:"Substr. % Left",t:"pct"},
-      {k:"wall_substrate_damage_n",l:"Substr. % N",t:"pct"},{k:"wall_substrate_damage_s",l:"Substr. % S",t:"pct"},
-      {k:"wall_substrate_damage_e",l:"Substr. % E",t:"pct"},{k:"wall_substrate_damage_w",l:"Substr. % W",t:"pct"},
-      {k:"wall_cladding_damage_per_front",l:"Clad. % Front",t:"pct"},{k:"wall_cladding_damage_per_back",l:"Clad. % Back",t:"pct"},
-      {k:"wall_cladding_damage_per_right",l:"Clad. % Right",t:"pct"},{k:"wall_cladding_damage_per_left",l:"Clad. % Left",t:"pct"},
-      {k:"wall_cladding_damage_n",l:"Clad. % N",t:"pct"},{k:"wall_cladding_damage_s",l:"Clad. % S",t:"pct"},
-      {k:"wall_cladding_damage_e",l:"Clad. % E",t:"pct"},{k:"wall_cladding_damage_w",l:"Clad. % W",t:"pct"},
-      {k:"damaged_fenesteration_per_front",l:"Fen. % Front",t:"pct"},{k:"damaged_fenesteration_per_back",l:"Fen. % Back",t:"pct"},
-      {k:"damaged_fenesteration_per_right",l:"Fen. % Right",t:"pct"},{k:"damaged_fenesteration_per_left",l:"Fen. % Left",t:"pct"},
-      {k:"wall_fenestration_damage_per_n",l:"Fen. % N",t:"pct"},{k:"wall_fenestration_damage_per_s",l:"Fen. % S",t:"pct"},
-      {k:"wall_fenestration_damage_per_e",l:"Fen. % E",t:"pct"},{k:"wall_fenestration_damage_per_w",l:"Fen. % W",t:"pct"},
-      {k:"soffit_damage_per_u",l:"Soffit %",t:"pct"},{k:"fascia_damage_per_u",l:"Fascia %",t:"pct"},
+      {k:"wind_damage_rating_u",l:"Wind Damage",t:"rtg",h:"How damaged the building is on a 0 to 5 scale."},{k:"damage_indicator_u",l:"Damage Indicator",t:"rtg",h:"Same as the wind damage rating (0 to 5)."},
+      {k:"degree_of_damage_u",l:"Degree of Damage",t:"rtg",h:"Same as the wind damage rating (0 to 5)."},{k:"wind_damage_details_u",l:"Wind Damage Details",t:"ta",h:"Short notes on the damage. Leave blank if there's none."},
+      {k:"roof_structure_damage_u",l:"Roof Struct.",t:"rtg",h:"Damage to the roof structure on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},{k:"roof_structure_damage_u_per",l:"Roof Struct. %",t:"pct",h:"Percent of the roof structure that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"roof_susbtrate_damage_u",l:"Roof Substr.",t:"rtg",h:"Damage to the roof substrate on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},{k:"roof_substrate_damage_per",l:"Roof Substr. %",t:"pct",h:"Percent of the roof substrate that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"foundation_failure_u",l:"Foundation",t:"rtg",h:"Damage to the foundation on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},{k:"foundatio_failure_per_u",l:"Foundation %",t:"pct",h:"Percent of the foundation that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_structure_damage_u",l:"Wall Struct. Overall",t:"rtg",h:"Damage to the wall structure overall on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},
+      {k:"wall_structure_damage_per_front",l:"Wall Str. % Front",t:"pct",h:"Percent of the front wall's structure that's damaged, 0 to 100. 0 if undamaged."},{k:"wall_structure_damage_per_back",l:"Wall Str. % Back",t:"pct",h:"Percent of the back wall's structure that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_structure_damage_per_left",l:"Wall Str. % Left",t:"pct",h:"Percent of the left wall's structure that's damaged, 0 to 100. 0 if undamaged."},{k:"wall_structure_damage_per_right",l:"Wall Str. % Right",t:"pct",h:"Percent of the right wall's structure that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_structure_damage_n",l:"Wall Str. % N",t:"pct",h:"Percent of the north wall's structure that's damaged, 0 to 100."},{k:"wall_structure_damage_s",l:"Wall Str. % S",t:"pct",h:"Percent of the south wall's structure that's damaged, 0 to 100."},
+      {k:"wall_structure_damage_e",l:"Wall Str. % E",t:"pct",h:"Percent of the east wall's structure that's damaged, 0 to 100."},{k:"wall_structure_damage_w",l:"Wall Str. % W",t:"pct",h:"Percent of the west wall's structure that's damaged, 0 to 100."},
+      {k:"wall_substrate_damage_u",l:"Wall Substr. Overall",t:"rtg",h:"Damage to the wall substrate overall on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},
+      {k:"wall_substrate_damage_per_front",l:"Substr. % Front",t:"pct",h:"Percent of the front wall's substrate that's damaged, 0 to 100. 0 if undamaged."},{k:"wall_substrate_damage_per_back",l:"Substr. % Back",t:"pct",h:"Percent of the back wall's substrate that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_substrate_damage_per_right",l:"Substr. % Right",t:"pct",h:"Percent of the right wall's substrate that's damaged, 0 to 100. 0 if undamaged."},{k:"wall_substrate_damage_per_left",l:"Substr. % Left",t:"pct",h:"Percent of the left wall's substrate that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_substrate_damage_n",l:"Substr. % N",t:"pct",h:"Percent of the north wall's substrate that's damaged, 0 to 100."},{k:"wall_substrate_damage_s",l:"Substr. % S",t:"pct",h:"Percent of the south wall's substrate that's damaged, 0 to 100."},
+      {k:"wall_substrate_damage_e",l:"Substr. % E",t:"pct",h:"Percent of the east wall's substrate that's damaged, 0 to 100."},{k:"wall_substrate_damage_w",l:"Substr. % W",t:"pct",h:"Percent of the west wall's substrate that's damaged, 0 to 100."},
+      {k:"wall_cladding_damage_per_front",l:"Clad. % Front",t:"pct",h:"Percent of the front wall's cladding that's damaged, 0 to 100. 0 if undamaged."},{k:"wall_cladding_damage_per_back",l:"Clad. % Back",t:"pct",h:"Percent of the back wall's cladding that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_cladding_damage_per_right",l:"Clad. % Right",t:"pct",h:"Percent of the right wall's cladding that's damaged, 0 to 100. 0 if undamaged."},{k:"wall_cladding_damage_per_left",l:"Clad. % Left",t:"pct",h:"Percent of the left wall's cladding that's damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_cladding_damage_n",l:"Clad. % N",t:"pct",h:"Percent of the north wall's cladding that's damaged, 0 to 100."},{k:"wall_cladding_damage_s",l:"Clad. % S",t:"pct",h:"Percent of the south wall's cladding that's damaged, 0 to 100."},
+      {k:"wall_cladding_damage_e",l:"Clad. % E",t:"pct",h:"Percent of the east wall's cladding that's damaged, 0 to 100."},{k:"wall_cladding_damage_w",l:"Clad. % W",t:"pct",h:"Percent of the west wall's cladding that's damaged, 0 to 100."},
+      {k:"damaged_fenesteration_per_front",l:"Fen. % Front",t:"pct",h:"Percent of the front wall's windows and doors that are damaged, 0 to 100. 0 if undamaged."},{k:"damaged_fenesteration_per_back",l:"Fen. % Back",t:"pct",h:"Percent of the back wall's windows and doors that are damaged, 0 to 100. 0 if undamaged."},
+      {k:"damaged_fenesteration_per_right",l:"Fen. % Right",t:"pct",h:"Percent of the right wall's windows and doors that are damaged, 0 to 100. 0 if undamaged."},{k:"damaged_fenesteration_per_left",l:"Fen. % Left",t:"pct",h:"Percent of the left wall's windows and doors that are damaged, 0 to 100. 0 if undamaged."},
+      {k:"wall_fenestration_damage_per_n",l:"Fen. % N",t:"pct",h:"Percent of the north wall's windows and doors that are damaged, 0 to 100."},{k:"wall_fenestration_damage_per_s",l:"Fen. % S",t:"pct",h:"Percent of the south wall's windows and doors that are damaged, 0 to 100."},
+      {k:"wall_fenestration_damage_per_e",l:"Fen. % E",t:"pct",h:"Percent of the east wall's windows and doors that are damaged, 0 to 100."},{k:"wall_fenestration_damage_per_w",l:"Fen. % W",t:"pct",h:"Percent of the west wall's windows and doors that are damaged, 0 to 100."},
+      {k:"soffit_damage_per_u",l:"Soffit %",t:"pct",h:"Percent of the soffit that's damaged, 0 to 100. 0 if undamaged."},{k:"fascia_damage_per_u",l:"Fascia %",t:"pct",h:"Percent of the fascia that's damaged, 0 to 100. 0 if undamaged."},
       {k:"piles_damage_u",l:"Piles",t:"select",o:["0","1","2","3","4","5","not_applicable"]},
       {k:"foundation_damage_cause_u",l:"Found. Cause",t:"select",o:["erosion","not_applicable","ot"]},
       {k:"foundation_damage_u",l:"Foundation Dmg",t:"rtg"},{k:"foundation_damage_u_per",l:"Foundation %",t:"pct"},
@@ -716,7 +716,7 @@ const S = {
       {k:"ip_failure_e",l:"IP E",t:"text"},{k:"ip_failure_w",l:"IP W",t:"text"},
       {k:"surge_damage_rating_u",l:"Surge Rating",t:"text"},{k:"rainwater_ingress_damage_rating_u",l:"Rain Ingress",t:"text"},
       {k:"wall_cladding_damage_level_u",l:"Clad. Level",t:"text"},{k:" stories_with_damage_u",l:"Stories w/ Dmg",t:"number"},
-      {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},{k:"damage_status",l:"Status",t:"select",o:["undamaged","minor_damage","moderate_damage","major_damage","destroyed"]},
+      {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},{k:"damage_status",l:"Status",t:"select",o:["undamaged","minor_damage","moderate_damage","major_damage","destroyed"],h:"Same as Overall Status (undamaged, minor, moderate, major, destroyed)."},
     ]},
     {id:"photos",t:"Photos",d:"Links to overall and detailed photos.",f:[
       {k:"overall_photos_front",l:"Overall Front",t:"text"},{k:"overall_photos_back",l:"Overall Back",t:"text"},
@@ -725,25 +725,25 @@ const S = {
       {k:"detailed_photos_left",l:"Detail Left",t:"text"},{k:"detailed_photos_right",l:"Detail Right",t:"text"},
     ]},
     {id:"heritage",t:"Heritage & Timeline",d:"Historic designations and pre/post-event status.",f:[
-      {k:"national_register_listing_year",l:"NRHP Year",t:"number"},
-      {k:"existed_during_tornado",l:"Existed During",t:"ynu",o:["yes","no","un"]},
-      {k:"buidling_use_before_tornado",l:"Use Before",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"]},
-      {k:"buidling_use_after_tornado",l:"Use After",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"]},
-      {k:"buidling_use_plan_after_tornado",l:"Planned Use",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"]},
-      {k:"demolishing_year",l:"Demolition Year",t:"number"},
-      {k:"single_unit",l:"Single Unit",t:"yn",o:["yes","no"]},{k:"multiple_unit",l:"Multiple Unit",t:"yn",o:["yes","no"]},
-      {k:"world_heritage_property",l:"World Heritage",t:"yn",o:["yes","no"]},{k:"hague_convention",l:"Hague Conv.",t:"yn",o:["yes","no"]},
-      {k:"sub_national_heritage _list",l:"Sub-National",t:"yn",o:["yes","no"]},{k:"iucn_protected_area",l:"IUCN Protected",t:"yn",o:["yes","no"]},
-      {k:"property_of_local_significance",l:"Local Signif.",t:"yn",o:["yes","no"]},
-      {k:"buidling_existed_5_yrs_before_tornado",l:"5yr Before",t:"ynu",o:["yes","no","un"]},
-      {k:"buidling_existed_3_yrs_before_tornado",l:"3yr Before",t:"ynu",o:["yes","no","un"]},
-      {k:"buidling_existed_1_yrs_before_tornado",l:"1yr Before",t:"ynu",o:["yes","no","un"]},
-      {k:"building_existed_during_tornado",l:"During",t:"ynu",o:["yes","no","un"]},
-      {k:"building_in_use_during_tornado",l:"In Use During",t:"ynu",o:["yes","no","un"]},
-      {k:"building_use_during_tornado",l:"Use During",t:"text"},
-      {k:"building_demolished_1_yrs_after_tornado",l:"Demol. 1yr After",t:"ynu",o:["yes","no","un"]},
-      {k:"building_demolished_3_yrs_after_tornado",l:"Demol. 3yr After",t:"ynu",o:["yes","no","un"]},
-      {k:"building_demolished_5_yrs_after_tornado",l:"Demol. 5yr After",t:"ynu",o:["yes","no","un"]},
+      {k:"national_register_listing_year",l:"NRHP Year",t:"number",h:"Year it was listed on the National Register, if it is."},
+      {k:"existed_during_tornado",l:"Existed During",t:"ynu",o:["yes","no","un"],h:"Yes or no."},
+      {k:"buidling_use_before_tornado",l:"Use Before",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Use before the tornado, with the same options as Occupancy (its current use, not the original historic one)."},
+      {k:"buidling_use_after_tornado",l:"Use After",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Use after the tornado, with the same options as Occupancy."},
+      {k:"buidling_use_plan_after_tornado",l:"Planned Use",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Planned use after the tornado. Usually the same as the use after."},
+      {k:"demolishing_year",l:"Demolition Year",t:"number",h:"Year it was demolished, or not_applicable."},
+      {k:"single_unit",l:"Single Unit",t:"yn",o:["yes","no"],h:"One use only, like a house or an office building. Pick single or multiple, not both."},{k:"multiple_unit",l:"Multiple Unit",t:"yn",o:["yes","no"],h:"Several uses or units in one building, like apartments, condos or offices with apartments upstairs. Pick single or multiple, not both."},
+      {k:"world_heritage_property",l:"World Heritage",t:"yn",o:["yes","no"],h:"From the listing (true or false) if it's on the National Register."},{k:"hague_convention",l:"Hague Conv.",t:"yn",o:["yes","no"],h:"From the listing (true or false) if it's on the National Register."},
+      {k:"sub_national_heritage _list",l:"Sub-National",t:"yn",o:["yes","no"],h:"From the listing (true or false) if it's on the National Register."},{k:"iucn_protected_area",l:"IUCN Protected",t:"yn",o:["yes","no"],h:"From the listing (true or false) if it's on the National Register."},
+      {k:"property_of_local_significance",l:"Local Signif.",t:"yn",o:["yes","no"],h:"Your call for buildings that aren't listed. Yes if it matters locally."},
+      {k:"buidling_existed_5_yrs_before_tornado",l:"5yr Before",t:"ynu",o:["yes","no","un"],h:"Yes or no, from Google Earth Pro's historical imagery."},
+      {k:"buidling_existed_3_yrs_before_tornado",l:"3yr Before",t:"ynu",o:["yes","no","un"],h:"Yes or no, from Google Earth Pro's historical imagery."},
+      {k:"buidling_existed_1_yrs_before_tornado",l:"1yr Before",t:"ynu",o:["yes","no","un"],h:"Yes or no, from Google Earth Pro's historical imagery."},
+      {k:"building_existed_during_tornado",l:"During",t:"ynu",o:["yes","no","un"],h:"Yes or no."},
+      {k:"building_in_use_during_tornado",l:"In Use During",t:"ynu",o:["yes","no","un"],h:"Yes or no."},
+      {k:"building_use_during_tornado",l:"Use During",t:"text",h:"Same options as Occupancy."},
+      {k:"building_demolished_1_yrs_after_tornado",l:"Demol. 1yr After",t:"ynu",o:["yes","no","un"],h:"Yes if it was demolished within this many years after the tornado. Round up, so 2 years later counts as 3."},
+      {k:"building_demolished_3_yrs_after_tornado",l:"Demol. 3yr After",t:"ynu",o:["yes","no","un"],h:"Yes if it was demolished within this many years after the tornado. Round up, so 2 years later counts as 3."},
+      {k:"building_demolished_5_yrs_after_tornado",l:"Demol. 5yr After",t:"ynu",o:["yes","no","un"],h:"Yes if it was demolished within this many years after the tornado. Round up, so 2 years later counts as 3."},
     ]},
     {id:"mat",t:"Materials",d:"Horizontal = floors, roofs, foundations. Vertical = walls.",layout:"cb",f:[
       {k:"const_material_h_stone",l:"Stone",t:"cb",g:"h"},{k:"const_material_h_brick",l:"Brick",t:"cb",g:"h"},
@@ -776,16 +776,16 @@ const S = {
       {k:"prop_mountain",l:"Mountain",t:"cb",g:"pt"},{k:"parking / storage facility",l:"Parking/Storage",t:"cb",g:"pt"},
       {k:"river catchment system",l:"River Catchment",t:"cb",g:"pt"},{k:"sea",l:"Sea",t:"cb",g:"pt"},
       {k:"underground facility",l:"Underground",t:"cb",g:"pt"},{k:"zoological park",l:"Zoo",t:"cb",g:"pt"},
-      {k:"prop_val_evidential",l:"Evidential",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
-      {k:"prop_val_historical",l:"Historical",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
-      {k:"prop_val_aesthetic",l:"Aesthetic",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
-      {k:"prop_val_communal",l:"Communal",t:"select",o:["no value","some","considerable","exceptional"],g:"val"},
+      {k:"prop_val_evidential",l:"Evidential",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How much history the building itself shows or holds that could be used."},
+      {k:"prop_val_historical",l:"Historical",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How important it is in a historical context."},
+      {k:"prop_val_aesthetic",l:"Aesthetic",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How aesthetic it is and whether it's kept up."},
+      {k:"prop_val_communal",l:"Communal",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How important it is to the local community."},
       {k:"owner_individual",l:"Individual",t:"cb",g:"own"},{k:"owner_business",l:"Business",t:"cb",g:"own"},
       {k:"owner_government",l:"Government",t:"cb",g:"own"},{k:"owner_ngo",l:"NGO",t:"cb",g:"own"},
       {k:"owner_religious ",l:"Religious",t:"cb",g:"own"},{k:"owner_unknown",l:"Unknown",t:"cb",g:"own"},
     ]},
     {id:"notes",t:"Notes",d:"Additional observations.",f:[
-      {k:"notes",l:"Notes",t:"ta"},
+      {k:"notes",l:"Notes",t:"ta",h:"Anything you're unsure about, like why you chose an archetype, mixed roof types, or when it was demolished."},
     ]},
   ],
   exportOrder: ["S.No.","completed_by","ref# (DELETE LATER)","tornado_name","tornado_year","town","overall_photos_link","tornado_EF","tornado_start_lat","tornado_end_lat","tornado_start_long","tornado_end_long","latitude","longitude","complete_address","building_name_listing","building_name_current","archetype","located_in_historic_district","occupany_u","number_stories","year_built_u","building_area_m2","building_urban_setting","building_position_on_street","buidling_height_m","first_floor_elevation_m","front_elevation_orientation","wall_length_side","wall_length_front","wall_thickness","roof_shape_u","roof_slope_u","construction_type_u","construction_type_u_unc","mwfrs_u_wall","mwfrs_u_wall_unc","mwfrs_u_roof","mwfrs_u_roof_unc","mwfrs_u_moment_frame","mwfrs_u_unc","mwfrs_u_unc","masonry_leaves","masonry_leaves_unc","structural_wall_system_u","foundation_type_u","foundation_type_u_unc","wall_anchorage_type_u","wall_anchorage_type_u_unc","wall_substrate_u","wall_substrate_u_unc","wall_cladding_u","wall_cladding_u_unc","soffit_type_u","soffit_present_u","wall_fenesteration_per_front","wall_fenesteration_per_back","wall_fenesteration_per_right","wall_fenesteration_per_left","wall_fenestration_per_n","wall_fenestration_per_s","wall_fenestration_per_e","wall_fenestration_per_w","wall_fenesteration_protection_front","wall_fenesteration_protection_front_unc","wall_fenesteration_protection_back","wall_fenesteration_protection_back_unc","wall_fenesteration_protection_right","wall_fenesteration_protection_left","fenestration_protection_type_front","fenestration_protection_type_back","fenestration_protection_type_right","fenestration_protection_type_left","large_door_present_front","large_door_present_back","large_door_present_right","large_door_present_left","door_present_n","door_present_s","door_present_e","door_present_w","roof_system_u","roof_system_u_unc","r2wall_attachment_u","roof_substrate_type_u","roof_substrate_type_u_unc","roof_cover_u","repla","overhang_length_u","parapet_height_m","retrofit_year_u","retrofit_present_u","retrofit_type_u","retrofit_type_unc_u","hazards_present_u","status_u","wind_damage_rating_u","damage_indicator_u","degree_of_damage_u","wind_damage_details_u","roof_structure_damage_u","roof_structure_damage_u_per","roof_susbtrate_damage_u","roof_substrate_damage_per","foundation_failure_u","foundatio_failure_per_u","wall_structure_damage_per_front","wall_structure_damage_per_back","wall_structure_damage_per_left","wall_structure_damage_per_right","wall_structure_damage_u","wall_structure_damage_n","wall_structure_damage_s","wall_structure_damage_e","wall_structure_damage_w","wall_substrate_damage_per_front","wall_substrate_damage_per_back","wall_substrate_damage_per_right","wall_substrate_damage_per_left","wall_substrate_damage_n","wall_substrate_damage_s","wall_substrate_damage_e","wall_substrate_damage_w","wall_substrate_damage_u","wall_cladding_damage_per_front","wall_cladding_damage_per_back","wall_cladding_damage_per_right","wall_cladding_damage_per_left","wall_cladding_damage_n","wall_cladding_damage_s","wall_cladding_damage_e","wall_cladding_damage_w","damaged_fenesteration_per_front","damaged_fenesteration_per_back","damaged_fenesteration_per_right","damaged_fenesteration_per_left","wall_fenestration_damage_per_n","wall_fenestration_damage_per_s","wall_fenestration_damage_per_e","wall_fenestration_damage_per_w","soffit_damage_per_u","fascia_damage_per_u","piles_damage_u","foundation_damage_cause_u","foundation_damage_u","foundation_damage_u_per","risk_category_16","building_low_rise","overall_photos_front","overall_photos_back","overall_photos_left","overall_photos_right","detailed_photos_front","detailed_photos_back","detailed_photos_left","detailed_photos_right","elevations_assessed_front_o","elevations_assessed_back_o","elevations_assessed_left_o","elevations_assessed_right_o","address_suite","address_locality","address_postal_code","address_country","occupancy_o","year_built_o","understory_pct_of_building_footprint","roof_shape_o","roof_slope_o","construction_type_o","mwfrs_o","structural_wall_system_o","foundation_type_o","wall_anchorage_type_o","wall_substrate_o","wall_cladding_o","soffit_type_o","wall_fenesteration_protection_right_unc","wall_fenesteration_protection_left_unc","fenestration_protection_type_unc","fenesteration_ratio_o","large_door_opening_type_","opening_type","roof_system_o","r2wall_attachment_o","r2wall_attachment_type_unc","roof_substrate_type_o","roof_cover_o","overhang_length_o","secondary_water_barrier_o","secondary_water_barrier_u","retrofit_type_1_o","retrofit_type_1_u","retrofit_type_2_o","reotrofit_2_u","retrofit_year_o","hazards_present_o","status_o","wind_damage_rating_o","overall_damage_notes_o","surge_damage_rating_o","surge_damage_rating_u","rainwater_ingress_damage_rating_o","rainwater_ingress_damage_rating_u","damage_indicator_o","degree_of_damage_o","wind_damage_details_o","roof_structure_damage_o","roof_susbtrate_damage_o","foundation_failure_o","wall_structure_damage_o","wall_substrate_damage_o","wall_cladding_damage_o","wall_cladding_damage_level_u"," stories_with_damage_o"," stories_with_damage_u","soffit_damage_per_o","fascia_damage_per_o","per_building_footprint_eroded_o","per_building_footprint_eroded_u","damage_understory_per_o","piles_damage_o","foundation_damage_cause_o","oop_failure_n","oop_failure_s","oop_failure_e","oop_failure_w","ip_failure_n","ip_failure_s","ip_failure_e","ip_failure_w","building_open","building_enclosed","building_regular_shape","exposure_category","building_rigid","national_register_listing_year","existed_during_tornado","buidling_use_before_tornado","buidling_use_after_tornado","buidling_use_plan_after_tornado","demolishing_year","single_unit","multiple_unit","world_heritage_property","hague_convention","sub_national_heritage _list","iucn_protected_area","property_of_local_significance","const_material_h_stone","const_material_h_brick","const_material_h_wood","const_material_h_mud","const_material_h_rf_masonry","const_material_h_rglr_stone","const_material_h_rf_conc","const_material_h_ir_stone","const_material_h_othr","const_material_v_stone","const_material_v_brick","const_material_v_wood","const_material_v_mud","const_material_v_rf_masonry","const_material_v_rglr_stone","const_material_v_rf_conc","const_material_v_ir_stone","const_material_v_othr","prop_agricultural ","prop_cave","prop_culture _entertainment_facility","prop_forest","prop_industrial_facility","prop_lake","prop_military","prop_nature","prop_religious","prop_rock formation","prop_sports_facility","prop_unilities_facility","prop_archaeological","prop_commemorative structure or landmark","prop_ecosystem","prop_habitat","prop_infrastructure","prop_law / government facility","prop_mine","prop_park / garden","prop_residential facility","prop_scenic area","prop_transportation facility","prop_volcano","prop_battlefield","prop_commercial / exchange facility","prop_educational facility","prop_health / welfare facility","prop_island(s)","prop_marine zone","prop_mountain","parking / storage facility","river catchment system","sea","underground facility","zoological park","prop_val_evidential","prop_val_historical","prop_val_aesthetic","prop_val_communal","owner_individual","owner_business","owner_government","owner_ngo","owner_religious ","owner_unknown","buidling_existed_5_yrs_before_tornado","buidling_existed_3_yrs_before_tornado","buidling_existed_1_yrs_before_tornado","building_existed_during_tornado","building_in_use_during_tornado","building_use_during_tornado","damage_status","building_demolished_1_yrs_after_tornado","building_demolished_3_yrs_after_tornado","building_demolished_5_yrs_after_tornado","notes"]
@@ -1566,13 +1566,17 @@ function renderForm() {
 }
 
 const GL = {h:"Horizontal (Floors, Roofs)",v:"Vertical (Walls)",pt:"Property Type",val:"Heritage Value",own:"Ownership"};
+const GT = {h:"Materials used in the foundation, floors or roof. Tick every one that applies.",
+            v:"Materials used in the walls and columns. Tick every one that applies.",
+            pt:"What the building was historically used for. Tick only one (churches are religious, post offices and courthouses are government, homes and apartments are residential).",
+            own:"Who owned it when the tornado hit. Tick only one. Private colleges count as business and public colleges as government."};
 
 function renderCbSec(sec) {
   const gs = {}; const loose = [];
   for (const f of sec.f) { if(f.g) { (gs[f.g]||(gs[f.g]=[])).push(f); } else loose.push(f); }
   let h = "";
   for (const [gid, flds] of Object.entries(gs)) {
-    h += `<div class="subhdr">${e(GL[gid]||gid)}</div>`;
+    h += `<div class="subhdr">${e(GL[gid]||gid)}${GT[gid] ? ` <span class="hi">?<span class="tt">${e(GT[gid])}</span></span>` : ""}</div>`;
     if (flds[0].t === "cb") {
       h += '<div class="cbg">';
       for (const f of flds) {
@@ -1592,7 +1596,8 @@ function renderCbSec(sec) {
 function renderFG(f) {
   const v = fd[f.k]; const fw = f.t==="ta" ? " fw" : "";
   let h = `<div class="fg${fw}"><div class="fl">${e(f.l)}`;
-  if (f.h) h += ` <span class="hi">?<span class="tt">${e(f.h)}</span></span>`;
+  const tip = f.h || (f.t === "unc" ? "How sure you are of the field before this one. 1 is certain, 2 probable, 3 a guess." : "");
+  if (tip) h += ` <span class="hi">?<span class="tt">${e(tip)}</span></span>`;
   h += '</div>' + renderIn(f, v) + '</div>';
   return h;
 }
@@ -1604,7 +1609,13 @@ function renderIn(f, val) {
     case "number": return `<input type="number" ${dk} value="${e(v)}" step="any">`;
     case "pct": return `<input type="number" ${dk} value="${e(v)}" min="0" max="100" placeholder="0–100">`;
     case "ta": return `<textarea ${dk}>${e(v)}</textarea>`;
-    case "select": return `<select ${dk}><option value="">--</option>${(f.o||[]).map(o => `<option value="${e(o)}" ${String(v)===String(o)?"selected":""}>${e(o)}</option>`).join("")}</select>`;
+    case "select": {
+      // A value already in the spreadsheet that isn't one of the options still shows (and stays) as is.
+      const cur = v === undefined || v === null ? "" : String(v).trim();
+      const extra = cur && !(f.o||[]).some(o => String(o) === cur)
+        ? `<option value="${e(cur)}" selected>${e(cur)} (as in spreadsheet)</option>` : "";
+      return `<select ${dk}><option value="">--</option>${extra}${(f.o||[]).map(o => `<option value="${e(o)}" ${cur===String(o)?"selected":""}>${e(o)}</option>`).join("")}</select>`;
+    }
     case "ynu": case "yn":
       return `<div class="rg">${(f.o||["yes","no"]).map(c => `<label class="${String(v)===c?'on':''}" data-k="${e(f.k)}" data-v="${c}" onclick="rc(this)">${c}</label>`).join("")}</div>`;
     case "rtg":
