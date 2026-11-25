@@ -16,6 +16,8 @@ form (GitHub Pages) ──HTTPS──> Tailscale funnel ──> recon_entry.py o
 - The launchd job sets `UV_CACHE_DIR` and `UV_LINK_MODE=copy` to match Becca's shell. Without them uv fails to start
   the server whenever it has to download a package (the default cache links onto the Samsung drive; "Cross-device
   link", seen 2026-11-22). So the server needs the Samsung drive mounted when it starts.
+- The launchd job runs `uv run --with requests --with msal --with numpy --with pillow` (numpy and Pillow cut the 360
+  stills). After changing the plist's arguments, `kickstart` isn't enough; use `launchctl bootout` then `bootstrap`.
 - It can only list rows, update cells in an existing row, and add a row, in the
   workbooks named in `~/.config/recon-entry/config.json`. No deletes.
 - Each row is found by its row number. Every save carries a fingerprint of the row
@@ -38,6 +40,9 @@ All but `/api/health` need header `X-Lab-Code`.
 | `GET /api/<dataset>/rows` | all non-empty rows, each with `_row` and `_hash` |
 | `PATCH /api/<dataset>/rows/<n>` | `{"hash": ..., "fields": {...}}` |
 | `POST /api/<dataset>/rows` | `{"fields": {...}}` adds a row after the last used one |
+| `POST /api/<dataset>/streetview-save` | `{"row", "pano", "heading", "pitch", "fov", "folder"?}` saves a Google Street View still to the building's photo folder |
+| `GET /api/<dataset>/dt360?lat=&lon=` | nearest frame of the DebrisTech 360 drive: `{"distance_m", "date"}` |
+| `POST /api/<dataset>/dt360-save` | `{"row", "share"?, "folder"?}` saves a 360 still with the DebrisTech citation burned in. Without `share` it faces the building from the nearest frame; with a viewer Share link it uses that frame and angle (the frame must be within 150 m of the building) |
 
 ## Operating
 
