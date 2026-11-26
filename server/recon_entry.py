@@ -297,6 +297,9 @@ class Dataset:
         unknown = [k for k in fields if k not in idx]
         if unknown:
             raise BadRequest(f"unknown columns: {unknown}")
+        locked = [k for k in fields if k.startswith("nws_")]
+        if locked:
+            raise BadRequest(f"NWS survey columns are filled by nws_join.py and can't be edited: {locked}")
         vals += [""] * (len(headers) - len(vals))
         for k, v in fields.items():
             if isinstance(v, bool):
