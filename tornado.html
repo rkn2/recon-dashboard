@@ -387,6 +387,12 @@ select {
 .cbg label:hover { background: var(--surface-alt); }
 .cbg input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); }
 
+.nws { border: 1px solid var(--border); border-left: 4px solid #6b7c93; border-radius: 6px; padding: 10px 12px; margin: 0 0 14px; background: var(--accent-soft); font-size: 13px; }
+.nws-h { font-weight: 600; margin-bottom: 6px; }
+.nws-g { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; }
+.nws-g span { color: var(--text-muted, var(--text)); }
+.nws-g b { font-weight: 500; }
+.nws-none { color: var(--text-muted, var(--text)); }
 .subhdr {
   font-size: 12.5px; font-weight: 600; margin: 18px 0 6px;
   padding-bottom: 3px; border-bottom: 1px solid var(--border);
@@ -689,8 +695,8 @@ const S = {
       {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor_damage","moderate_damage","major_damage","destroyed"],h:"From Fulcrum's Wind Damage Rating, or your best guess from imagery if the building isn't in Fulcrum."},
     ]},
     {id:"dmg",t:"Damage Assessment",d:"Component ratings (0–5) and damage % by elevation.",f:[
-      {k:"wind_damage_rating_u",l:"Wind Damage",t:"rtg",h:"Leave blank for now (we may fill these with EF-scale values later). Record the damage in Overall Status instead."},{k:"damage_indicator_u",l:"Damage Indicator",t:"rtg",h:"Leave blank for now (we may fill these with EF-scale values later). Record the damage in Overall Status instead."},
-      {k:"degree_of_damage_u",l:"Degree of Damage",t:"rtg",h:"Leave blank for now (we may fill these with EF-scale values later). Record the damage in Overall Status instead."},{k:"wind_damage_details_u",l:"Wind Damage Details",t:"ta",h:"Short notes on the damage. Leave blank if there's none."},
+      {k:"wind_damage_rating_u",l:"Wind Damage",t:"rtg",h:"Leave blank for now. Record the damage in Overall Status instead."},{k:"damage_indicator_u",l:"Damage Indicator",t:"rtg",h:"Leave blank. The NWS damage indicator for this building, if NWS surveyed it, is in the NWS box at the top of this section."},
+      {k:"degree_of_damage_u",l:"Degree of Damage",t:"rtg",h:"Leave blank. The NWS degree of damage for this building, if NWS surveyed it, is in the NWS box at the top of this section."},{k:"wind_damage_details_u",l:"Wind Damage Details",t:"ta",h:"Short notes on the damage. Leave blank if there's none."},
       {k:"roof_structure_damage_u",l:"Roof Struct.",t:"rtg",h:"Damage to the roof structure on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},{k:"roof_structure_damage_u_per",l:"Roof Struct. %",t:"pct",h:"Percent of the roof structure that's damaged, 0 to 100. 0 if undamaged."},
       {k:"roof_susbtrate_damage_u",l:"Roof Substr.",t:"rtg",h:"Damage to the roof substrate on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},{k:"roof_substrate_damage_per",l:"Roof Substr. %",t:"pct",h:"Percent of the roof substrate that's damaged, 0 to 100. 0 if undamaged."},
       {k:"foundation_failure_u",l:"Foundation",t:"rtg",h:"Damage to the foundation on a 0 to 5 scale, from Fulcrum's Wind-induced Damage Levels if it's there. 0 if undamaged."},{k:"foundatio_failure_per_u",l:"Foundation %",t:"pct",h:"Percent of the foundation that's damaged, 0 to 100. 0 if undamaged."},
@@ -915,7 +921,7 @@ function fetchFromOneDrive() {
 function diffFields(b) {
   const out = {}, saved = b._saved || {};
   for (const k in b) {
-    if (k[0] === "_" || k === "sno" || k === "S.No.") continue;
+    if (k[0] === "_" || k === "sno" || k === "S.No." || k.startsWith("nws_")) continue;
     if (cols && !cols.has(k)) continue;
     const a = saved[k] == null ? "" : String(saved[k]);
     const v = b[k] == null ? "" : String(b[k]);
@@ -1552,6 +1558,7 @@ function renderForm() {
   const el = document.getElementById("fscroll");
   let h = `<h2 class="sec-title">${e(sec.t)}</h2>`;
   if (sec.d) h += `<p class="sec-desc">${e(sec.d)}</p>`;
+  if (sec.id === "dmg" && fd.nws_match) h += renderNWS();
 
   if (sec.layout === "cb") { h += renderCbSec(sec); }
   else {
@@ -1569,6 +1576,24 @@ function renderForm() {
   el.innerHTML = h;
   el.scrollTop = 0;
   bindForm();
+}
+
+// NWS Damage Assessment Toolkit values, filled into the nws_ columns by server/nws_join.py. Read-only.
+function renderNWS() {
+  const tip = "From the National Weather Service damage survey of this tornado. Filled in from NWS data and can't be edited here. It's the NWS survey point closest to this building (within 20 m), and each point is used for one building only.";
+  let h = `<div class="nws"><div class="nws-h">NWS damage survey (not editable) <span class="hi">?<span class="tt">${e(tip)}</span></span></div>`;
+  if (fd.nws_match === "matched") {
+    h += `<div class="nws-g"><span>Damage indicator</span><b>${e(fd.nws_damage_indicator)}</b>`
+      + `<span>Degree of damage</span><b>${e(fd.nws_degree_of_damage)}. ${e(fd.nws_degree_of_damage_text)}</b>`
+      + `<span>EF rating</span><b>${e(fd.nws_ef)}, ${e(fd.nws_wind_mph)} mph</b>`
+      + `<span>Survey point</span><b>${e(fd.nws_distance_m)} m from this building</b></div>`;
+  } else {
+    const why = {"no coordinates": "This building has no coordinates yet, so it couldn't be matched."}[fd.nws_match]
+      || (String(fd.nws_match).startsWith("nearest") ? "The closest NWS point is closer to a neighbouring building, so it's listed there."
+      : "NWS didn't record a survey point near this building. Survey teams mostly rated damaged buildings.");
+    h += `<div class="nws-none">No NWS survey value for this building. ${e(why)}</div>`;
+  }
+  return h + '</div>';
 }
 
 const GL = {h:"Horizontal (Floors, Roofs)",v:"Vertical (Walls)",pt:"Property Type",val:"Heritage Value",own:"Ownership"};
