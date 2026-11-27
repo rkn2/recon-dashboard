@@ -58,7 +58,7 @@ Testing the form locally: serve the repo on port 8790 and open
 
 ## NWS damage survey columns (`nws_join.py`)
 
-`nws_join.py` fills eight `nws_` columns (match status, distance, damage indicator, degree of damage and its description, EF, wind speed, DAT point id) from the NWS Damage Assessment Toolkit survey points for the storm dates. Each building gets the closest building point within 20 m, and each point goes to one building only, closest pairs first. Trees, power lines and poles are skipped. Rows without a match say why in `nws_match`. The columns are added at the right end of the sheet the first time, and the server refuses edits to any `nws_` column; the form shows them read-only in the Damage Assessment section.
+`nws_join.py` fills nine `nws_` columns (match status, distance, damage indicator, degree of damage and its description, EF, wind speed, DAT point id, and the EF zone from the DAT contour polygons, which every building with coordinates gets) from the NWS Damage Assessment Toolkit survey points for the storm dates. Each building gets the closest building point within 20 m, and each point goes to one building only, closest pairs first. Trees, power lines and poles are skipped. Rows without a match say why in `nws_match`. The columns are added at the right end of the sheet the first time, and the server refuses edits to any `nws_` column; the form shows them read-only in the Damage Assessment section.
 
     uv run --with requests --with msal server/nws_join.py --dataset stlouis --start 2025-05-16 --end 2025-05-18 \
         [--path <test copy> --drive me --state-dir <scratch>] [--csv disagreements.csv] [--write]

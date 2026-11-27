@@ -952,7 +952,7 @@ function saveOne(id) {
     for (const k in r) if (k[0] !== "_") b._saved[k] = r[k];
     if (wasNew) {
       const oldId = b._id; b._id = "r_" + r._row; b.sno = r._row;
-      if (curId === oldId) { curId = b._id; fd._id = b._id; }
+      if (curId === oldId) { curId = b._id; fd._id = b._id; fd.sno = b.sno; }
       saveChains[b._id] = saveChains[oldId];
     }
     // a newer edit may have arrived while this one was in flight
@@ -1076,7 +1076,7 @@ function schedSave() {
   saveT = setTimeout(() => {
     const idx = blds.findIndex(b => b._id === curId);
     if (idx >= 0) {
-      const keep = { _row: blds[idx]._row, _hash: blds[idx]._hash, _saved: blds[idx]._saved };
+      const keep = { _row: blds[idx]._row, _hash: blds[idx]._hash, _saved: blds[idx]._saved, sno: blds[idx].sno };
       blds[idx] = {...fd, ...keep, _dirty: true};
       cacheLocal();
       queueSave(curId);
@@ -1580,18 +1580,20 @@ function renderForm() {
 
 // NWS Damage Assessment Toolkit values, filled into the nws_ columns by server/nws_join.py. Read-only.
 function renderNWS() {
-  const tip = "From the National Weather Service damage survey of this tornado. Filled in from NWS data and can't be edited here. It's the NWS survey point closest to this building (within 20 m), and each point is used for one building only.";
+  const tip = "From the National Weather Service damage survey of this tornado. Filled in from NWS data and can't be edited here. The survey point is the one closest to this building (within 20 m), and each point is used for one building only. The EF zone is the highest NWS EF contour the building sits inside.";
   let h = `<div class="nws"><div class="nws-h">NWS damage survey (not editable) <span class="hi">?<span class="tt">${e(tip)}</span></span></div>`;
   if (fd.nws_match === "matched") {
     h += `<div class="nws-g"><span>Damage indicator</span><b>${e(fd.nws_damage_indicator)}</b>`
       + `<span>Degree of damage</span><b>${e(fd.nws_degree_of_damage)}. ${e(fd.nws_degree_of_damage_text)}</b>`
       + `<span>EF rating</span><b>${e(fd.nws_ef)}, ${e(fd.nws_wind_mph)} mph</b>`
-      + `<span>Survey point</span><b>${e(fd.nws_distance_m)} m from this building</b></div>`;
+      + `<span>Survey point</span><b>${e(fd.nws_distance_m)} m from this building</b>`
+      + (fd.nws_ef_zone ? `<span>EF zone</span><b>${e(fd.nws_ef_zone)}</b>` : "") + '</div>';
   } else {
     const why = {"no coordinates": "This building has no coordinates yet, so it couldn't be matched."}[fd.nws_match]
       || (String(fd.nws_match).startsWith("nearest") ? "The closest NWS point is closer to a neighbouring building, so it's listed there."
       : "NWS didn't record a survey point near this building. Survey teams mostly rated damaged buildings.");
-    h += `<div class="nws-none">No NWS survey value for this building. ${e(why)}</div>`;
+    if (fd.nws_ef_zone) h += `<div class="nws-g" style="margin-bottom:6px"><span>EF zone</span><b>${e(fd.nws_ef_zone)}</b></div>`;
+    h += `<div class="nws-none">No NWS survey point for this building. ${e(why)}</div>`;
   }
   return h + '</div>';
 }

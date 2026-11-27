@@ -23,7 +23,8 @@ import recon_entry as R  # noqa: E402
 DAT = ("https://services.dat.noaa.gov/arcgis/rest/services/nws_damageassessmenttoolkit/"
        "DamageViewer/FeatureServer/0/query")
 COLS = ["nws_match", "nws_distance_m", "nws_damage_indicator", "nws_degree_of_damage",
-        "nws_degree_of_damage_text", "nws_ef", "nws_wind_mph", "nws_point_id"]
+        "nws_degree_of_damage_text", "nws_ef", "nws_wind_mph", "nws_point_id", "nws_ef_zone"]
+POLYS = DAT.replace("/0/query", "/2/query")
 MAX_M = 20.0
 NOT_BUILDINGS = ("Trees", "Transmission", "Electrical", "Free-Standing", "Free Standing")
 
@@ -45,6 +46,42 @@ def fetch_points(start, end, bbox):
         offset += len(j["features"])
         if not j.get("exceededTransferLimit") or not j["features"]:
             return out
+
+
+def fetch_zones(start, end, bbox):
+    """DAT EF contour polygons: list of (EF number, rings in lon/lat)."""
+    r = requests.get(POLYS, params={
+        "where": f"stormdate >= DATE '{start}' AND stormdate < DATE '{end}'",
+        "geometry": ",".join(map(str, bbox)), "geometryType": "esriGeometryEnvelope", "inSR": 4326, "outSR": 4326,
+        "spatialRel": "esriSpatialRelIntersects", "outFields": "objectid,efscale", "returnGeometry": "true",
+        "f": "json"}, timeout=60)
+    r.raise_for_status()
+    j = r.json()
+    if "error" in j:
+        raise RuntimeError(f"DAT polygon query failed: {j['error']}")
+    if j.get("exceededTransferLimit"):
+        raise RuntimeError("DAT polygon query hit the record limit")
+    out = []
+    for f in j["features"]:
+        ef = str(f["attributes"].get("efscale") or "")
+        if ef[:2] == "EF" and ef[2:].isdigit():
+            out.append((int(ef[2:]), f["geometry"]["rings"]))
+    return out
+
+
+def inside(lon, lat, rings):
+    """Even-odd rule over all rings, so holes count as outside."""
+    c = False
+    for ring in rings:
+        for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1]):
+            if (y1 > lat) != (y2 > lat) and lon < x1 + (lat - y1) * (x2 - x1) / (y2 - y1):
+                c = not c
+    return c
+
+
+def ef_zone(lat, lon, zones):
+    hits = [ef for ef, rings in zones if inside(lon, lat, rings)]
+    return f"EF{max(hits)}" if hits else "outside the NWS EF0 zone"
 
 
 def is_building(p):
@@ -136,6 +173,13 @@ def main():
     bpts = [p for p in pts if is_building(p)]
     print(f"DAT points in the area: {len(pts)}, building points: {len(bpts)}")
     got, taken = match(buildings, bpts)
+    zones = fetch_zones(a.start, a.end, bbox)
+    print(f"DAT EF polygons: {sorted(ef for ef, _ in zones)}")
+    zone = {n: ef_zone(la, lo, zones) for n, (la, lo) in buildings.items()}
+    zc = {}
+    for z in zone.values():
+        zc[z] = zc.get(z, 0) + 1
+    print("EF zones:", dict(sorted(zc.items())))
 
     # Column positions: reuse existing nws_ columns, else append after the last header.
     last = max(i for i, h in enumerate(headers) if h) + 1
@@ -161,16 +205,19 @@ def main():
         if n in got:
             p, d = got[n]
             line = ["matched", round(d, 1), p.get("damage_txt") or "", num(p.get("dod")), p.get("dod_txt") or "",
-                    p.get("efscale") or "", num(p.get("windspeed")), num(p.get("objectid"))]
+                    p.get("efscale") or "", num(p.get("windspeed")), num(p.get("objectid")), zone[n]]
         elif n in taken:
-            line = ["nearest NWS point belongs to another building"] + [""] * 7
+            line = ["nearest NWS point belongs to another building"] + [""] * 7 + [zone[n]]
         elif n in buildings:
-            line = [f"no NWS point within {MAX_M:.0f} m"] + [""] * 7
+            line = [f"no NWS point within {MAX_M:.0f} m"] + [""] * 7 + [zone[n]]
         else:
-            line = ["no coordinates"] + [""] * 7
+            line = ["no coordinates"] + [""] * 8
         counts[line[0]] = counts.get(line[0], 0) + 1
         block.append(line)
     print("rows:", counts)
+    bad = [i for i, line in enumerate(block) if len(line) != len(COLS)]
+    if bad:
+        sys.exit(f"internal error: {len(bad)} rows aren't {len(COLS)} values wide")
 
     if a.csv:
         st = idx.get("status_u")
