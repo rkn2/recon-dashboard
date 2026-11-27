@@ -909,7 +909,7 @@ if (EV.hazard !== "tornado") {
     sec.f.forEach(function(f) {
       if (f.k === "archetype" && EV.archetypes) { f.o = EV.archetypes; f.l = "Archetype (" + EV.archetypes[0] + "–" + EV.archetypes[EV.archetypes.length - 1] + ")"; }
       if (f.k === "status_u") { f.o = FLOOD_DS; f.h = EV.statusTip; }
-      if (f.k === "hazards_present_u") f.h = "Flood for almost every building. Add rain or others if you see them.";
+      if (f.k === "hazards_present_u") { f.o = ["flood","rain","wind","surge","tree_fall","wind-borne_debris","un"]; f.h = "Flood for almost every building. Add rain or others if you see them."; }
       if (f.k === "rainwater_ingress_damage_rating_u") { f.t = "select"; f.o = [{v:"0",l:"0 none visible"},{v:"1",l:"1 minor"},{v:"2",l:"2 moderate"},{v:"3",l:"3 severe"},{v:"4",l:"4 complete"},{v:"un",l:"un (can't see inside)"}]; f.h = "Rainwater or flood water inside, from what you can see of the interior."; }
     });
   });
