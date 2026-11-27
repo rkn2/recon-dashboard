@@ -999,7 +999,7 @@ function isMine(b) {
   const me = document.getElementById("uname").value.trim().toLowerCase();
   const by = String(b.completed_by || "").trim().toLowerCase();
   if (!me || !by) return false;
-  // "Nymir" and "Nymire" match (one letter off the end); "Bri" (summer 2025) and "Brian" don't
+  // "Sam" and "Samm" match (one letter off the end); "Sam" and "Samuel" don't
   return me === by || (Math.abs(me.length - by.length) === 1 && (me.startsWith(by) || by.startsWith(me)));
 }
 function isDone(b) { return !!(b.status_u || b.damage_status); }
