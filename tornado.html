@@ -84,6 +84,7 @@ button { cursor: pointer; }
   font-size: 17px; font-weight: 600; margin: 0 0 1px;
 }
 .side-hdr small { font-size: 11.5px; color: var(--text-muted); letter-spacing: .02em; }
+#ev-pick { width: 100%; margin: 0 0 8px; font: inherit; font-size: 12px; padding: 4px 6px; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--input-bg); color: var(--text); }
 .user-row {
   display: flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 12px;
@@ -512,8 +513,9 @@ select {
   <div id="overlay" onclick="closeSidebar()"></div>
   <aside id="sidebar">
     <div class="side-hdr">
-      <h1>Tornado Damage DB</h1>
-      <small>St. Louis 2025 &middot; <a class="guide-link" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/_layouts/15/Doc.aspx?sourcedoc=%7BD6F2A759-714F-4428-A923-B9D97FD38BB5%7D&amp;file=2025_4_9_dataEntryGuide.docx&amp;action=default&amp;mobileredirect=true" target="_blank" rel="noopener">Data entry guide &#8599;</a></small>
+      <select id="ev-pick" aria-label="Event"></select>
+      <h1 id="ev-title">Tornado Damage DB</h1>
+      <small id="ev-sub">St. Louis 2025 &middot; <a class="guide-link" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/_layouts/15/Doc.aspx?sourcedoc=%7BD6F2A759-714F-4428-A923-B9D97FD38BB5%7D&amp;file=2025_4_9_dataEntryGuide.docx&amp;action=default&amp;mobileredirect=true" target="_blank" rel="noopener">Data entry guide &#8599;</a></small>
     </div>
     <div class="user-row">
       <span style="font-weight:500">Name</span>
@@ -538,7 +540,7 @@ select {
       <button onclick="openSidebar()" aria-label="Menu">&#9776;</button>
       <div>
         <div class="mob-title" id="mob-title">Tornado Damage DB</div>
-        <div class="mob-sub">St. Louis 2025 &middot; <a class="guide-link" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/_layouts/15/Doc.aspx?sourcedoc=%7BD6F2A759-714F-4428-A923-B9D97FD38BB5%7D&amp;file=2025_4_9_dataEntryGuide.docx&amp;action=default&amp;mobileredirect=true" target="_blank" rel="noopener">Guide &#8599;</a></div>
+        <div class="mob-sub" id="ev-mobsub">St. Louis 2025 &middot; <a class="guide-link" href="https://pennstateoffice365.sharepoint.com/sites/H3DTornadoREU/_layouts/15/Doc.aspx?sourcedoc=%7BD6F2A759-714F-4428-A923-B9D97FD38BB5%7D&amp;file=2025_4_9_dataEntryGuide.docx&amp;action=default&amp;mobileredirect=true" target="_blank" rel="noopener">Guide &#8599;</a></div>
       </div>
       <button id="map-toggle" onclick="toggleMap()">Photos &amp; map</button>
     </div>
@@ -556,7 +558,7 @@ select {
           <div id="ref-tabs">
             <button class="rtab on" data-pane="map" onclick="switchRefTab('map')">Satellite Map</button>
             <button class="rtab" data-pane="sv" onclick="switchRefTab('sv')">Street View</button>
-            <button class="rtab" data-pane="dt360" onclick="switchRefTab('dt360')">360° after (May 2025)</button>
+            <button class="rtab" id="tab-dt360" data-pane="dt360" onclick="switchRefTab('dt360')">360° after (May 2025)</button>
             <button class="rtab" data-pane="bldphotos" onclick="switchRefTab('bldphotos')">Building Photos</button>
             <button class="rtab" data-pane="photos" onclick="switchRefTab('photos')">Links / Files</button>
             <div class="ref-search">
@@ -600,15 +602,34 @@ select {
 <script src="photo-manifest.js"></script>
 <script>
 // ── SCHEMA ──────────────────────────────────────────────────────────
+// One field list for every event. Fields whose column isn't in the loaded
+// workbook are dropped by applySchema(), so tornado-only and flood-only
+// columns can sit side by side here.
+const USES = ["assembly","business","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"];
 const S = {
   defaults: { tornado_name:"May 16, 2025 Tornado Outbreak", tornado_year:"2025", town:"St. Louis", tornado_EF:"", tornado_start_lat:"38.644", tornado_end_lat:"38.7971", tornado_start_long:"-90.3468", tornado_end_long:"-89.9733" },
   sections: [
     {id:"location",t:"Building Location",d:"Click on the map to set coordinates, or type them in.",f:[
       {k:"latitude",l:"Latitude",t:"number",h:"Building coordinate"},{k:"longitude",l:"Longitude",t:"number",h:"Building coordinate"},
       {k:"complete_address",l:"Complete Address",t:"text",h:"Address if available; coordinates are more accurate"},
+      {k:"complete address",l:"Complete Address",t:"text",h:"Address if available. Coordinates are more accurate, since some buildings don't have an exact address."},
+      {k:"town",l:"Town",t:"text"},
+      {k:"NRHP_ref_number",l:"NRHP Ref. Number",t:"text",h:"The National Register of Historic Places reference number if the building is listed, otherwise no."},
+      {k:"fully completed?",l:"Fully Completed?",t:"text",h:"Y once the whole row is done, including the damage and Fulcrum checks. Otherwise no, and what's missing."},
+      {k:"overall_photo_links",l:"Photos Link",t:"text",h:"Name or link of this building's photo folder."},
       {k:"building_name_listing",l:"NRHP Listing Name",t:"text",h:"National Register listing name"},
       {k:"building_name_current",l:"Current Name",t:"text",h:"Current or alternative name"},
       {k:"overall_photos_link",l:"Photos Link",t:"text",h:"Name of this building's photo folder. Collect Street View before and after for the front, back, left and right, aerial views from Google Earth Pro's historical imagery, and any Fulcrum photos."},
+    ]},
+    {id:"flood",t:"Flood Exposure",d:"Water height, river distances and the FEMA flood zone.",f:[
+      {k:"flood_height_building",l:"Flood Height (m)",t:"number",h:"Height of the flood water on the building, in m, measured in the 3D point cloud (Links / Files)."},
+      {k:"distance_from_river_edge",l:"Dist. to River Edge",t:"text",h:"Distance to the closest river edge, from the study zone map in Links / Files."},
+      {k:"distance_from_river_centerline",l:"Dist. to River Centerline",t:"text",h:"Distance to the closest point on the river centerline, from the study zone map."},
+      {k:"FEMA_floodzone",l:"FEMA Flood Zone",t:"select",o:["1% annual chance","regulatory","0.2% annual chance"],h:"From FEMA's National Flood Hazard Layer viewer (Links / Files)."},
+      {k:"dist_to_culvert",l:"Dist. to Culvert",t:"text"},{k:"dist_to_stormsewer",l:"Dist. to Storm Sewer",t:"text"},
+      {k:"raised_above_road_level",l:"Raised Above Road",t:"ynu",o:["yes","no","un"],h:"Whether the first floor sits above the level of the road."},
+      {k:"raised_floor_elevation_m",l:"Raised Floor (m)",t:"text",h:"How far the first floor is raised, in m, or not_applicable."},
+      {k:"raised_floor_elevation_ft",l:"Raised Floor (ft)",t:"text",h:"How far the first floor is raised, in feet, or not_applicable."},
     ]},
     {id:"basics",t:"Building Basics",d:"Physical characteristics from visual inspection.",f:[
       {k:"archetype",l:"Archetype (1–19)",t:"select",o:["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"],h:"Tornado archetype from Masoomi and van de Lindt's fragility portfolio (the table in the data entry guide). The lab uses 6 for 1 story brick buildings and 19 for 2+ story brick. Put your reasoning in Notes if you're unsure."},
@@ -635,6 +656,7 @@ const S = {
       {k:"mwfrs_u_wall_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_roof",l:"MWFRS Roof",t:"select",o:["roof_diaphragm_wood","roof_diaphragm_steel","roof_diaphragm_metal","roof_diaphragm_conc","un","not_applicable","ot"],h:"Main wind force resisting system for the roof, meaning what the roof is made of that resists the wind. Best approximation is fine."},
       {k:"mwfrs_u_roof_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_moment_frame",l:"Moment Frame",t:"ynu",o:["yes","no","un"],h:"Whether it has a moment frame. Historic buildings usually don't."},
       {k:"mwfrs_u_unc",l:"MWFRS Overall Cert.",t:"unc"},
+      {k:"mwfrs_u_moment_frame_unc",l:"Certainty",t:"unc"},
       {k:"masonry_leaves",l:"Masonry Leaves",t:"select",o:["single_leaf","double_leaf","triple_leaf","un","not_applicable"],h:"Layers of masonry in the walls. Unreinforced masonry is almost always double_leaf. not_applicable if it isn't masonry."},
       {k:"masonry_leaves_unc",l:"Certainty",t:"unc"},
       {k:"structural_wall_system_u",l:"Struct. Wall System",t:"select",o:["solid_brick_wythe","masonry_block_unreinforced","masonry_block_reinforced","wood_frame","steel_cold_formed","un"],h:"From imagery and any historic listing documents. For historic unreinforced masonry this is masonry_block_unreinforced."},
@@ -656,6 +678,11 @@ const S = {
       {k:"wall_fenesteration_per_right",l:"% Right",t:"pct",h:"Percent of the right wall that's windows and doors, 0 to 100. Sides follow the front orientation you chose."},{k:"wall_fenesteration_per_left",l:"% Left",t:"pct",h:"Percent of the left wall that's windows and doors, 0 to 100. Sides follow the front orientation you chose."},
       {k:"wall_fenestration_per_n",l:"% N",t:"pct",h:"Percent of the north facing wall that's windows and doors, 0 to 100."},{k:"wall_fenestration_per_s",l:"% S",t:"pct",h:"Percent of the south facing wall that's windows and doors, 0 to 100."},
       {k:"wall_fenestration_per_e",l:"% E",t:"pct",h:"Percent of the east facing wall that's windows and doors, 0 to 100."},{k:"wall_fenestration_per_w",l:"% W",t:"pct",h:"Percent of the west facing wall that's windows and doors, 0 to 100."},
+      {k:"wall_fenesteration_front_per",l:"% Front",t:"pct",h:"Percent of the front wall that's windows and doors, 0 to 100."},{k:"wall_fenesteration_front_lowerlevel_per",l:"% Front Lower Level",t:"pct",h:"Same, for the lowest floor only, where flood water reaches first."},
+      {k:"wall_fenesteration_back_per",l:"% Back",t:"pct",h:"Percent of the back wall that's windows and doors, 0 to 100."},{k:"wall_fenesteration_back_lowerlevel_per",l:"% Back Lower Level",t:"pct",h:"Same, for the lowest floor only, where flood water reaches first."},
+      {k:"wall_fenesteration_right_per",l:"% Right",t:"pct",h:"Percent of the right wall that's windows and doors, 0 to 100."},{k:"wall_fenesteration_right_lowerlevel_per",l:"% Right Lower Level",t:"pct",h:"Same, for the lowest floor only, where flood water reaches first."},
+      {k:"wall_fenesteration_left_per",l:"% Left",t:"pct",h:"Percent of the left wall that's windows and doors, 0 to 100."},{k:"wall_fenesteration_left_lowerlevel_per",l:"% Left Lower Level",t:"pct",h:"Same, for the lowest floor only, where flood water reaches first."},
+      {k:"wall_fenestration_per_north",l:"% N",t:"pct"},{k:"wall_fenestration_per_south",l:"% S",t:"pct"},{k:"wall_fenestration_per_east",l:"% E",t:"pct"},
       {k:"wall_fenesteration_protection_front",l:"Prot. Front",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
       {k:"wall_fenesteration_protection_front_unc",l:"Cert.",t:"unc"},
       {k:"wall_fenesteration_protection_back",l:"Prot. Back",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
@@ -664,6 +691,10 @@ const S = {
       {k:"wall_fenesteration_protection_right_unc",l:"Cert.",t:"unc"},
       {k:"wall_fenesteration_protection_left",l:"Prot. Left",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
       {k:"wall_fenesteration_protection_left_unc",l:"Cert.",t:"unc"},
+      {k:"wall_fenesteration_protection_front_lowerlevel",l:"Prot. Front Lower",t:"ynu",o:["yes","no","un"],h:"Protection on the lowest floor's openings before the flood, like shutters, plywood or flood gates."},
+      {k:"wall_fenesteration_protection_back_lowerlevel",l:"Prot. Back Lower",t:"ynu",o:["yes","no","un"],h:"Protection on the lowest floor's openings before the flood, like shutters, plywood or flood gates."},
+      {k:"wall_fenesteration_protection_right_lowerlevel",l:"Prot. Right Lower",t:"ynu",o:["yes","no","un"],h:"Protection on the lowest floor's openings before the flood, like shutters, plywood or flood gates."},
+      {k:"wall_fenesteration_protection_left_lowerlevel",l:"Prot. Left Lower",t:"ynu",o:["yes","no","un"],h:"Protection on the lowest floor's openings before the flood, like shutters, plywood or flood gates."},
       {k:"fenestration_protection_type_front",l:"Type Front",t:"select",o:["un","impact resistant","plywood","storm_shutters","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
       {k:"fenestration_protection_type_back",l:"Type Back",t:"select",o:["un","impact resistant","plywood","storm_shutters","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
       {k:"fenestration_protection_type_right",l:"Type Right",t:"select",o:["un","impact resistant","plywood","storm_shutters","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
@@ -677,6 +708,10 @@ const S = {
       {k:"large_door_present_left",l:"Large Left",t:"ynu",o:["yes","no","un"],h:"Large doors means garage doors only. yes, no or un."},
       {k:"door_present_n",l:"Door N",t:"ynu",o:["yes","no","un"],h:"Garage doors on the north side. yes, no or un."},{k:"door_present_s",l:"Door S",t:"ynu",o:["yes","no","un"],h:"Garage doors on the south side. yes, no or un."},
       {k:"door_present_e",l:"Door E",t:"ynu",o:["yes","no","un"],h:"Garage doors on the east side. yes, no or un."},{k:"door_present_w",l:"Door W",t:"ynu",o:["yes","no","un"],h:"Garage doors on the west side. yes, no or un."},
+      {k:"door_present_n_lowerlevel",l:"Door N Lower",t:"ynu",o:["yes","no","un"]},
+      {k:"door_present_s_lowerlevel",l:"Door S Lower",t:"ynu",o:["yes","no","un"]},
+      {k:"door_present_e_lowerlevel",l:"Door E Lower",t:"ynu",o:["yes","no","un"]},
+      {k:"door_present_w_lowerlevel",l:"Door W Lower",t:"ynu",o:["yes","no","un"]},
       {k:"large_door_opening_type_",l:"Large Door Type",t:"text"},{k:"opening_type",l:"Opening Type",t:"text"},
     ]},
     {id:"roof",t:"Roof System",d:"Structure, attachment, substrate, cover.",f:[
@@ -687,6 +722,7 @@ const S = {
       {k:"roof_substrate_type_u",l:"Substrate",t:"select",o:["plywood","dimensional_lumber","metal_deck","concrete","none","ot","un"],h:"You can't see it, so go by when it was built and the roof system. Usually dimensional lumber."},
       {k:"roof_substrate_type_u_unc",l:"Certainty",t:"unc"},
       {k:"roof_cover_u",l:"Cover",t:"select",o:["asphalt","clay_shingles","asbestos_shingles","corrugated_metal","standing_seam_metal","tiles_concrete","slate","wooden_shingles","un","ot"],h:"What's on top of the roof, from imagery (asphalt, clay tile, metal, slate). Search pictures of each if you're unsure."},
+      {k:"roof_cover_u_unc",l:"Cover Certainty",t:"unc"},
       {k:"overhang_length_u",l:"Overhang (m)",t:"number",h:"Roof overhang in m, best guess from imagery. 0 if none."},{k:"parapet_height_m",l:"Parapet (m)",t:"number",h:"Parapet height in m, best guess. Parapets are usually at least about 0.75 m. 0 if none."},
       {k:"secondary_water_barrier_u",l:"2nd Water Barrier",t:"text"},
     ]},
@@ -694,6 +730,7 @@ const S = {
       {k:"retrofit_present_u",l:"Retrofit Present",t:"ynu",o:["yes","no","un"],h:"Yes or no. Scroll through Google Earth Pro's historical imagery to spot additions."},
       {k:"retrofit_year_u",l:"Year",t:"number",h:"Year of any major renovation, addition or structural retrofit. Separate several years with commas."},{k:"retrofit_type_u",l:"Type",t:"select",o:["not_applicable","building_addition","structural_restoration","reinforced_masonry","steel_bracing","un","ot"],h:"Kind of retrofit, like a building addition or structural restoration."},
       {k:"retrofit_type_unc_u",l:"Certainty",t:"unc"},
+      {k:"retrofit_year",l:"Retrofit Year",t:"text",h:"Year of any major renovation, addition or structural retrofit."},
       {k:"retrofit_type_1_u",l:"Retrofit 1",t:"text"},{k:"reotrofit_2_u",l:"Retrofit 2",t:"text"},
       {k:"hazards_present_u",l:"Hazards",t:"multi",o:["wind","tree_fall","wind-borne_debris","rain","flood","surge","un"],h:"From Fulcrum's Hazards Present if the building is there. Otherwise assume wind, plus tree fall if aerial views show fallen trees nearby."},
       {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor","moderate","severe","destroyed","unknown"],h:"From Fulcrum's Wind Damage Rating, or your best guess from imagery if the building isn't in Fulcrum."},
@@ -733,6 +770,8 @@ const S = {
       {k:"surge_damage_rating_u",l:"Surge Rating",t:"text"},{k:"rainwater_ingress_damage_rating_u",l:"Rain Ingress",t:"text"},
       {k:"wall_cladding_damage_level_u",l:"Clad. Level",t:"text"},{k:" stories_with_damage_u",l:"Stories w/ Dmg",t:"number"},
       {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},
+      {k:"rain_damage_details_u",l:"Water Damage Details",t:"ta",h:"What you can see of the water damage, like how high the water line is and on which sides."},
+      {k:"roof_substrate_damage_u",l:"Roof Substrate Dmg",t:"rtg"},{k:"foundation_failure_per_u",l:"Foundation Failure %",t:"pct"},
     ]},
     {id:"photos",t:"Photos",d:"Links to overall and detailed photos.",f:[
       {k:"overall_photos_front",l:"Overall Front",t:"text"},{k:"overall_photos_back",l:"Overall Back",t:"text"},
@@ -760,18 +799,30 @@ const S = {
       {k:"building_demolished_1_yrs_after_tornado",l:"Demol. 1yr After",t:"ynu",o:["yes","no","un"],h:"Yes if it was demolished within this many years after the tornado. Round up, so 2 years later counts as 3."},
       {k:"building_demolished_3_yrs_after_tornado",l:"Demol. 3yr After",t:"ynu",o:["yes","no","un"],h:"Yes if it was demolished within this many years after the tornado. Round up, so 2 years later counts as 3."},
       {k:"building_demolished_5_yrs_after_tornado",l:"Demol. 5yr After",t:"ynu",o:["yes","no","un"],h:"Yes if it was demolished within this many years after the tornado. Round up, so 2 years later counts as 3."},
+      {k:"existed_during_flood",l:"Existed During",t:"ynu",o:["yes","no","un"]},
+      {k:"buidling_use_before_flood",l:"Use Before",t:"select",o:USES},{k:"buidling_use_after_flood",l:"Use After",t:"select",o:USES},
+      {k:"buidling_use_plan_after_flood",l:"Planned Use",t:"select",o:USES},
+      {k:"buidling_existed_5_yrs_before_flood",l:"5yr Before",t:"ynu",o:["yes","no","un"]},{k:"buidling_existed_3_yrs_before_flood",l:"3yr Before",t:"ynu",o:["yes","no","un"]},
+      {k:"buidling_existed_1_yrs_before_flood",l:"1yr Before",t:"ynu",o:["yes","no","un"]},{k:"building_existed_during_flood",l:"During",t:"ynu",o:["yes","no","un"]},
+      {k:"building_in_use_during_flood",l:"In Use During",t:"ynu",o:["yes","no","un"]},{k:"building_use_during_flood",l:"Use During",t:"select",o:USES},
+      {k:"building_demolished_1_yrs_after_event",l:"Demol. 1yr After",t:"ynu",o:["yes","no","un"]},{k:"building_demolished_3_yrs_after_event",l:"Demol. 3yr After",t:"ynu",o:["yes","no","un"]},
+      {k:"building_demolished_5_yrs_after_event",l:"Demol. 5yr After",t:"ynu",o:["yes","no","un"]},
+      {k:"building_abandoned_1_yrs_after_event",l:"Abandoned 1yr After",t:"ynu",o:["yes","no","un"]},
+      {k:"emergency_measures_only_performed_1_yrs_after_event",l:"Only Emergency Work 1yr After",t:"ynu",o:["yes","no","un"],h:"Only emergency measures like boarding up or shoring a year after the flood."},
+      {k:"restoration_in_progress_1_yrs_after_event",l:"Restoration Underway 1yr After",t:"ynu",o:["yes","no","un"]},
+      {k:"restoration_completed_building_in_use_1_yrs_after_event",l:"Restored and In Use 1yr After",t:"ynu",o:["yes","no","un"]},
     ]},
     {id:"mat",t:"Materials",d:"Horizontal = floors, roofs, foundations. Vertical = walls.",layout:"cb",f:[
       {k:"const_material_h_stone",l:"Stone",t:"cb",g:"h"},{k:"const_material_h_brick",l:"Brick",t:"cb",g:"h"},
       {k:"const_material_h_wood",l:"Wood",t:"cb",g:"h"},{k:"const_material_h_mud",l:"Mud",t:"cb",g:"h"},
       {k:"const_material_h_rf_masonry",l:"Reinf. Masonry",t:"cb",g:"h"},{k:"const_material_h_rglr_stone",l:"Regular Stone",t:"cb",g:"h"},
       {k:"const_material_h_rf_conc",l:"Reinf. Concrete",t:"cb",g:"h"},{k:"const_material_h_ir_stone",l:"Irregular Stone",t:"cb",g:"h"},
-      {k:"const_material_h_othr",l:"Other",t:"cb",g:"h"},
+      {k:"const_material_h_steel",l:"Steel",t:"cb",g:"h"},{k:"const_material_h_othr",l:"Other",t:"cb",g:"h"},
       {k:"const_material_v_stone",l:"Stone",t:"cb",g:"v"},{k:"const_material_v_brick",l:"Brick",t:"cb",g:"v"},
       {k:"const_material_v_wood",l:"Wood",t:"cb",g:"v"},{k:"const_material_v_mud",l:"Mud",t:"cb",g:"v"},
       {k:"const_material_v_rf_masonry",l:"Reinf. Masonry",t:"cb",g:"v"},{k:"const_material_v_rglr_stone",l:"Regular Stone",t:"cb",g:"v"},
       {k:"const_material_v_rf_conc",l:"Reinf. Concrete",t:"cb",g:"v"},{k:"const_material_v_ir_stone",l:"Irregular Stone",t:"cb",g:"v"},
-      {k:"const_material_v_othr",l:"Other",t:"cb",g:"v"},
+      {k:"const_material_v_steel",l:"Steel",t:"cb",g:"v"},{k:"const_material_v_othr",l:"Other",t:"cb",g:"v"},
     ]},
     {id:"prop",t:"Property & Ownership",d:"Property type, heritage value, ownership.",layout:"cb",f:[
       {k:"prop_agricultural ",l:"Agricultural",t:"cb",g:"pt"},{k:"prop_cave",l:"Cave",t:"cb",g:"pt"},
@@ -792,6 +843,8 @@ const S = {
       {k:"prop_mountain",l:"Mountain",t:"cb",g:"pt"},{k:"parking / storage facility",l:"Parking/Storage",t:"cb",g:"pt"},
       {k:"river catchment system",l:"River Catchment",t:"cb",g:"pt"},{k:"sea",l:"Sea",t:"cb",g:"pt"},
       {k:"underground facility",l:"Underground",t:"cb",g:"pt"},{k:"zoological park",l:"Zoo",t:"cb",g:"pt"},
+      {k:"prop_parking / storage facility",l:"Parking/Storage",t:"cb",g:"pt"},{k:"prop_river catchment system",l:"River Catchment",t:"cb",g:"pt"},
+      {k:"prop_sea",l:"Sea",t:"cb",g:"pt"},{k:"prop_underground facility",l:"Underground",t:"cb",g:"pt"},{k:"prop_zoological park",l:"Zoo",t:"cb",g:"pt"},
       {k:"prop_val_evidential",l:"Evidential",t:"select",o:["no value","limited","some","considerable","exceptional"],g:"val",h:"How much history the building itself shows or holds that could be used."},
       {k:"prop_val_historical",l:"Historical",t:"select",o:["no value","limited","some","considerable","exceptional"],g:"val",h:"How important it is in a historical context."},
       {k:"prop_val_aesthetic",l:"Aesthetic",t:"select",o:["no value","limited","some","considerable","exceptional"],g:"val",h:"How aesthetic it is and whether it's kept up."},
@@ -799,8 +852,10 @@ const S = {
       {k:"owner_individual",l:"Individual",t:"cb",g:"own"},{k:"owner_business",l:"Business",t:"cb",g:"own"},
       {k:"owner_government",l:"Government",t:"cb",g:"own"},{k:"owner_ngo",l:"NGO",t:"cb",g:"own"},
       {k:"owner_religious ",l:"Religious",t:"cb",g:"own"},{k:"owner_unknown",l:"Unknown",t:"cb",g:"own"},
+      {k:"owner_occupied",l:"Owner Occupied",t:"cb",g:"own"},{k:"tenant_occupied",l:"Tenant Occupied",t:"cb",g:"own"},
     ]},
     {id:"notes",t:"Notes",d:"Additional observations.",f:[
+      {k:"Notes",l:"Notes",t:"ta",h:"Anything you're unsure about, like why you chose an archetype, mixed roof types, or when it was demolished."},
       {k:"notes",l:"Notes",t:"ta",h:"Anything you're unsure about, like why you chose an archetype, mixed roof types, or when it was demolished."},
     ]},
   ],
@@ -812,16 +867,64 @@ const S = {
 // them into the OneDrive DataInput workbook (server/recon_entry.py).
 // API_PROD is the Tailscale funnel path to that server. ?api= overrides it for
 // local testing only (localhost), so a crafted link can't collect the lab code.
+// ── EVENTS ──────────────────────────────────────────────────────────
+// Which disaster this page is entering data for, from ?event= (St. Louis by
+// default). Each event has its own workbook on the server (its dataset key).
+const FLOOD_DS = [
+  {v:"undamaged",l:"undamaged (DS0)",h:"Water reaches the crawlspace or basement and touches the foundation. Little damage below the first floor."},
+  {v:"minor",l:"minor (DS1)",h:"Water touches the floor joists or just enters the building. Carpets, baseboards and flooring damaged, no drywall damage."},
+  {v:"moderate",l:"moderate (DS2)",h:"Partial drywall damage, base outlets, water heater and furnace damaged. Equipment and furniture on the first floor ruined."},
+  {v:"severe",l:"severe (DS3)",h:"Non-structural damage through the whole building, including upper stories. Studs mostly reusable. Major mold."},
+  {v:"destroyed",l:"destroyed (DS4)",h:"Significant structural damage to studs, trusses or joists. Interiors destroyed."},
+  {v:"unknown",l:"unknown"}
+];
+const EVENTS = {
+  stlouis: { dataset: "stlouis", name: "St. Louis 2025 tornado", title: "Tornado Damage DB", sub: "St. Louis 2025",
+    hazard: "tornado", store: "tornado_db_buildings_od", addr: "complete_address", center: [38.643, -90.325],
+    dt360: true, guide: null, links: null, exportName: "StLouis_Tornado_DataInput_export.csv" },
+  marshall: { dataset: "marshall", name: "Marshall, NC 2024 flood (Helene)", title: "Flood Damage DB", sub: "Marshall, NC 2024 (Helene)",
+    hazard: "flood", store: "recon_marshall_buildings", addr: "complete address", center: [35.7965, -82.6845],
+    dt360: false, exportName: "Marshall_Flood_DataInput_export.csv",
+    defaults: { town: "Marshall, NC", hazards_present_u: "flood" },
+    archetypes: ["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13","F14","F15"],
+    statusTip: "Flood damage state from the guide's table (hover each choice). The Marshall survey was two months after the water went down and many buildings were boarded up, so from the maximum flood depth we assume every house reached at least moderate (DS2).",
+    guide: "https://pennstateoffice365.sharepoint.com/sites/FloodREU/_layouts/15/Doc.aspx?sourcedoc=%7B9772D929-1D81-4DE6-BFA7-C35ED973DCE5%7D&file=flood_data_input_guide_Carol.docx&action=default&mobileredirect=true",
+    links: [
+      ["Data Entry Guide (Flood REU Team)", "How to fill in each column, with the flood damage state table", "guide"],
+      ["Study Zone Map", "The Marshall study area and river, for the river distances", "https://www.google.com/maps/d/viewer?mid=1uVtbNWDZn2-hwoZvSlFk9tOSy9jiap4&ll=35.79647127306477%2C-82.68450785&z=17"],
+      ["FEMA Flood Map (NFHL viewer)", "Flood zone for the FEMA_floodzone column", "https://hazards-fema.maps.arcgis.com/apps/webappviewer/index.html?id=8b0adb51996444d4879338b5529aa9cd"],
+      ["Marshall Folder (Flood REU Team)", "Workbook, data sources and reference photo links", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2024_marshall_helene"],
+      ["Fulcrum", "Field survey photos and damage notes", "https://web.fulcrumapp.com/users/sign_in"]
+    ] }
+};
+const EVENT = (function() {
+  const q = (new URLSearchParams(location.search).get("event") || "stlouis").toLowerCase();
+  return EVENTS[q] ? q : "stlouis";
+})();
+const EV = EVENTS[EVENT];
+const ADDR = EV.addr;   // workbook column holding the street address
+if (EV.defaults) S.defaults = Object.assign({}, EV.defaults);
+if (EV.hazard !== "tornado") {
+  S.sections.forEach(function(sec) {
+    sec.f.forEach(function(f) {
+      if (f.k === "archetype" && EV.archetypes) { f.o = EV.archetypes; f.l = "Archetype (" + EV.archetypes[0] + "–" + EV.archetypes[EV.archetypes.length - 1] + ")"; }
+      if (f.k === "status_u") { f.o = FLOOD_DS; f.h = EV.statusTip; }
+      if (f.k === "hazards_present_u") f.h = "Flood for almost every building. Add rain or others if you see them.";
+      if (f.k === "rainwater_ingress_damage_rating_u") { f.t = "select"; f.o = [{v:"0",l:"0 none visible"},{v:"1",l:"1 minor"},{v:"2",l:"2 moderate"},{v:"3",l:"3 severe"},{v:"4",l:"4 complete"},{v:"un",l:"un (can't see inside)"}]; f.h = "Rainwater or flood water inside, from what you can see of the interior."; }
+    });
+  });
+}
+
 const API_PROD = "https://becca-mcp.tail3a44c1.ts.net/recon";
 const API_BASE = (function() {
   const o = new URLSearchParams(location.search).get("api") || "";
   if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(o)) return o.replace(/\/$/, "");
   return API_PROD;
 })();
-const DATASET = "stlouis";
+const DATASET = EV.dataset;
 
 // ── State ───────────────────────────────────────────────────────────
-const STORE_KEY = "tornado_db_buildings_od";
+const STORE_KEY = EV.store;   // each event caches its own buildings
 let blds = [], curId = null, curSec = 0, fd = {};
 let saveT = null;
 let cols = null;            // column names in the workbook, from /schema
@@ -984,7 +1087,7 @@ function saveOne(id) {
 
 // ── Helpers ─────────────────────────────────────────────────────────
 function e(s) { return s == null ? "" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function lbl(b) { return b.complete_address || b.building_name_current || b.building_name_listing || "Building " + (b.sno || "?"); }
+function lbl(b) { return b[ADDR] || b.building_name_current || b.building_name_listing || "Building " + (b.sno || "?"); }
 function secProg(sec) {
   let n=0; for (const f of sec.f) { const v=fd[f.k]; if(v!==undefined&&v!==""&&v!==null) n++; }
   return {n, tot:sec.f.length};
@@ -1097,7 +1200,7 @@ function setF(k, v) { fd[k] = v; if (k==="status_u") fd.damage_status = v; sched
 // The short view hides fields the fall 2026 crew rarely fills (checked against
 // the live workbook, 2026-11-25). Every other tab shows all its fields.
 // "Show all fields" brings back everything; nothing is removed from the workbook.
-const CORE_RULES = {
+const CORE_RULES = EV.hazard !== "tornado" ? {} : {
   photos: [],
   dmg: ["wind_damage_rating_u","damage_indicator_u","degree_of_damage_u","wind_damage_details_u",
         "roof_structure_damage_u_per","roof_substrate_damage_per","wall_structure_damage_u",
@@ -1141,7 +1244,7 @@ function renderTabs() {
 
 // ── Leaflet Map ─────────────────────────────────────────────────────
 let leafMap = null, leafMarker = null, currentTileLayer = null;
-const STL_CENTER = [38.643, -90.325];
+const STL_CENTER = EV.center;
 const TILES = {
   street: { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attr: "&copy; OpenStreetMap" },
   satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr: "&copy; Esri" }
@@ -1221,7 +1324,7 @@ function searchAddr() {
       renderForm();
       if (data[0].display_name) {
         var shortAddr = data[0].display_name.split(",").slice(0, 3).join(",");
-        setF("complete_address", shortAddr);
+        setF(ADDR, shortAddr);
       }
     } else {
       alert("Address not found. Try a more specific search.");
@@ -1343,7 +1446,7 @@ function saveStreetView() {
                fov: Math.max(10, Math.min(120, 180 / Math.pow(2, zoom))) };
   btn.disabled = true; say("Saving…");
   getPhotoIndex().catch(function() { return {}; }).then(function(idx) {
-    var folder = idx[normalizeAddr(fd.complete_address || "")];
+    var folder = idx[normalizeAddr(fd[ADDR] || "")];
     if (folder) body.folder = folder;
     return api("POST", "/streetview-save", body);
   }).then(function(d) {
@@ -1363,7 +1466,7 @@ function updateDT360() {
   if (!el) return;
   var lat = parseFloat(fd.latitude), lon = parseFloat(fd.longitude), forId = curId;
   if (isNaN(lat) || isNaN(lon)) { el.innerHTML = '<div class="dt-empty">This building has no coordinates yet.</div>'; return; }
-  var label = (fd.complete_address || "").split(",")[0];
+  var label = (fd[ADDR] || "").split(",")[0];
   var url = DT360_VIEWER + "?v_lat=" + lat + "&v_lng=" + lon + "&v_label=" + encodeURIComponent(label);
   var key = lat.toFixed(6) + "," + lon.toFixed(6);
   el.innerHTML = '<div class="dt-empty">Looking for the nearest 360° frame…</div>';
@@ -1404,7 +1507,7 @@ function saveDT360(useLink) {
   }
   btns.forEach(function(x) { if (x) x.disabled = true; }); say("Saving… (this takes a few seconds)");
   getPhotoIndex().catch(function() { return {}; }).then(function(idx) {
-    var folder = idx[normalizeAddr(fd.complete_address || "")];
+    var folder = idx[normalizeAddr(fd[ADDR] || "")];
     if (folder) body.folder = folder;
     return api("POST", "/dt360-save", body);
   }).then(function(d) {
@@ -1486,7 +1589,7 @@ function photoKind(file) {
 function updateBuildingPhotos() {
   var el = document.getElementById("ref-bldphotos");
   if (!el) return;
-  var addr = fd.complete_address || '';
+  var addr = fd[ADDR] || '';
   var forId = curId;
   el.innerHTML = '<div class="bp-empty">Loading photos…</div>';
   getPhotoIndex().then(function(idx) {
@@ -1635,7 +1738,8 @@ function renderCbSec(sec) {
 function renderFG(f) {
   const v = fd[f.k]; const fw = f.t==="ta" ? " fw" : "";
   let h = `<div class="fg${fw}"><div class="fl">${e(f.l)}`;
-  const tip = f.h || (f.t === "unc" ? "How sure you are of the field before this one. 1 is certain, 2 probable, 3 a guess." : "");
+  let tip = f.h || (f.t === "unc" ? "How sure you are of the field before this one. 1 is certain, 2 probable, 3 a guess." : "");
+  if (EV.hazard !== "tornado") tip = tip.replace(/\btornado\b/g, EV.hazard).replace(/\bTornado\b/g, EV.hazard[0].toUpperCase() + EV.hazard.slice(1));
   if (tip) h += ` <span class="hi">?<span class="tt">${e(tip)}</span></span>`;
   h += '</div>' + renderIn(f, v) + '</div>';
   return h;
@@ -1651,9 +1755,11 @@ function renderIn(f, val) {
     case "select": {
       // A value already in the spreadsheet that isn't one of the options still shows (and stays) as is.
       const cur = v === undefined || v === null ? "" : String(v).trim();
-      const extra = cur && !(f.o||[]).some(o => String(o) === cur)
+      // Options are plain values, or {v, l, h} for a value with its own label and hover text.
+      const ov = o => String(typeof o === "object" ? o.v : o);
+      const extra = cur && !(f.o||[]).some(o => ov(o) === cur)
         ? `<option value="${e(cur)}" selected>${e(cur)} (as in spreadsheet)</option>` : "";
-      return `<select ${dk}><option value="">--</option>${extra}${(f.o||[]).map(o => `<option value="${e(o)}" ${cur===String(o)?"selected":""}>${e(o)}</option>`).join("")}</select>`;
+      return `<select ${dk}><option value="">--</option>${extra}${(f.o||[]).map(o => `<option value="${e(ov(o))}" ${cur===ov(o)?"selected":""}${o.h?` title="${e(o.h)}"`:""}>${e(typeof o === "object" ? o.l : o)}</option>`).join("")}</select>`;
     }
     case "multi": {
       // Several choices, saved as "brick, stone". Values not in the list still show and stay ticked.
@@ -1701,14 +1807,14 @@ window.bc = function(el) {
 // ── Export ───────────────────────────────────────────────────────────
 function exportCSV() {
   if (!blds.length) { alert("No buildings to export."); return; }
-  const hdr = S.exportOrder;
+  const hdr = EVENT === "stlouis" ? S.exportOrder : [...(cols || [])];
   const esc = v => { if(v==null||v==="") return ""; const s=String(v); return s.includes(",")||s.includes('"')||s.includes("\n") ? '"'+s.replace(/"/g,'""')+'"' : s; };
   let csv = hdr.map(esc).join(",") + "\n";
   for (const b of blds) csv += hdr.map(h => esc(b[h])).join(",") + "\n";
   const blob = new Blob([csv], {type:"text/csv"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "StLouis_Tornado_DataInput_export.csv";
+  a.download = EV.exportName;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
 }
@@ -1737,7 +1843,7 @@ function updateMobTitle() {
   if (curId && fd) {
     el.textContent = lbl(fd);
   } else {
-    el.textContent = "Tornado Damage DB";
+    el.textContent = EV.title;
   }
 }
 
@@ -1806,7 +1912,7 @@ function initLandingMap(){
     var c=L.circleMarker([b.latitude,b.longitude],{
       radius:5, fillColor:color, color:"#fff", weight:1, fillOpacity:.85
     }).addTo(landingMap);
-    c.bindTooltip((b.complete_address||'No address')+'\n'+(b.completed_by?'By: '+b.completed_by:''),{direction:'top',offset:[0,-8]});
+    c.bindTooltip((b[ADDR]||'No address')+'\n'+(b.completed_by?'By: '+b.completed_by:''),{direction:'top',offset:[0,-8]});
     c.on("click",function(ev){
       L.DomEvent.stopPropagation(ev);
       selBld(b._id);
@@ -1845,6 +1951,26 @@ document.getElementById("bsearch").oninput = function() { LF.q = this.value; ren
   btn.setAttribute("aria-pressed", LF[p[1]] ? "true" : "false");
   btn.onclick = function() { LF[p[1]] = !LF[p[1]]; btn.setAttribute("aria-pressed", LF[p[1]] ? "true" : "false"); saveLF(); renderList(); };
 });
+// Event picker and the event's header, links and tabs. St. Louis keeps the HTML as written.
+(function setupEvent() {
+  const pick = document.getElementById("ev-pick");
+  pick.innerHTML = Object.keys(EVENTS).map(k => `<option value="${k}" ${k===EVENT?"selected":""}>${e(EVENTS[k].name)}</option>`).join("");
+  pick.onchange = function() {
+    const q = new URLSearchParams(location.search);
+    q.set("event", this.value);
+    location.search = q.toString();
+  };
+  if (EVENT === "stlouis") return;
+  document.title = EV.sub + " — Building Damage Entry";
+  document.getElementById("ev-title").textContent = EV.title;
+  document.getElementById("mob-title").textContent = EV.title;
+  const sub = e(EV.sub) + (EV.guide ? ` &middot; <a class="guide-link" href="${e(EV.guide)}" target="_blank" rel="noopener">Data entry guide</a>` : "");
+  document.getElementById("ev-sub").innerHTML = sub;
+  document.getElementById("ev-mobsub").innerHTML = sub;
+  if (!EV.dt360) document.getElementById("tab-dt360").style.display = "none";
+  document.getElementById("ref-photos").innerHTML = (EV.links || []).map(l =>
+    `<a class="photo-card" href="${e(l[2] === "guide" ? EV.guide : l[2])}" target="_blank" rel="noopener"><div class="pc-title">${e(l[0])}</div><div class="pc-desc">${e(l[1])}</div></a>`).join("");
+})();
 renderList();
 setTimeout(initLandingMap,100);
 
