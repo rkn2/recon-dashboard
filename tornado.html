@@ -732,7 +732,7 @@ const S = {
       {k:"ip_failure_e",l:"IP E",t:"text"},{k:"ip_failure_w",l:"IP W",t:"text"},
       {k:"surge_damage_rating_u",l:"Surge Rating",t:"text"},{k:"rainwater_ingress_damage_rating_u",l:"Rain Ingress",t:"text"},
       {k:"wall_cladding_damage_level_u",l:"Clad. Level",t:"text"},{k:" stories_with_damage_u",l:"Stories w/ Dmg",t:"number"},
-      {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},{k:"damage_status",l:"Status",t:"select",o:["undamaged","minor","moderate","severe","destroyed","unknown"],h:"Same as Overall Status (undamaged, minor, moderate, severe, destroyed)."},
+      {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},
     ]},
     {id:"photos",t:"Photos",d:"Links to overall and detailed photos.",f:[
       {k:"overall_photos_front",l:"Overall Front",t:"text"},{k:"overall_photos_back",l:"Overall Back",t:"text"},
@@ -1089,7 +1089,9 @@ function schedSave() {
   }, 800);
 }
 
-function setF(k, v) { fd[k] = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
+// damage_status (heritage timeline block) asked the same thing as Overall Status, so the form
+// no longer shows it and keeps the workbook column as a copy of status_u.
+function setF(k, v) { fd[k] = v; if (k==="status_u") fd.damage_status = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
 
 // ── Core fields view ────────────────────────────────────────────────
 // The short view hides fields the fall 2026 crew rarely fills (checked against
@@ -1099,7 +1101,7 @@ const CORE_RULES = {
   photos: [],
   dmg: ["wind_damage_rating_u","damage_indicator_u","degree_of_damage_u","wind_damage_details_u",
         "roof_structure_damage_u_per","roof_substrate_damage_per","wall_structure_damage_u",
-        "wall_substrate_damage_u","wall_cladding_damage_level_u","damage_status"],
+        "wall_substrate_damage_u","wall_cladding_damage_level_u"],
   heritage: ["single_unit","multiple_unit"],
   prop: ["prop_residential facility","owner_individual","owner_business","owner_government","owner_ngo","owner_religious","owner_unknown"]
 };
