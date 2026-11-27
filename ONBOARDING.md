@@ -48,7 +48,7 @@ curl -fsSL https://claude.ai/install.sh | bash
 Then tell git who you are and sign in to GitHub:
 
 ```bash
-git config --global user.name "Journey Lewonas"
+git config --global user.name "Your Name"
 git config --global user.email "jbl6699@psu.edu"
 gh auth login        # pick GitHub.com, HTTPS, and "Login with a web browser"
 ```
@@ -174,7 +174,7 @@ form in the browser ──> lab server on Becca's Mac mini ──> OneDrive Exce
    built from each workbook's columns and the flood data input guide.
 2. **Live dashboard.** `index.html` shows real data from the server, not the old
    copy pasted into the file.
-3. **Data quality views.** Missing fields, inconsistent names ("Bri" vs "Brian"),
+3. **Data quality views.** Missing fields, inconsistent names ("Sam" vs "Samantha"),
    duplicate addresses, values that aren't allowed codes, progress per student.
 4. **A one-page guide** for students entering data.
 
