@@ -372,6 +372,10 @@ select {
 }
 .rg label:last-child,.rtg button:last-child,.ug button:last-child { border-right: none; }
 .rg label.on { background: var(--accent-soft); color: var(--accent); }
+.ms { display: flex; flex-wrap: wrap; gap: 4px; }
+.ms label { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--input-border); border-radius: 12px; background: var(--input-bg); font-size: 12.5px; color: var(--text-muted); cursor: pointer; }
+.ms label.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.ms input { margin: 0; }
 .rtg button.on { background: var(--accent); color: #fff; font-weight: 600; }
 .ug button { width: 30px; flex: none; font-size: 11px; }
 .ug button.on { background: var(--warning-soft); color: var(--warning); font-weight: 600; }
@@ -609,7 +613,7 @@ const S = {
     {id:"basics",t:"Building Basics",d:"Physical characteristics from visual inspection.",f:[
       {k:"archetype",l:"Archetype (1–19)",t:"select",o:["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"],h:"Tornado archetype from Masoomi and van de Lindt's fragility portfolio (the table in the data entry guide). The lab uses 6 for 1 story brick buildings and 19 for 2+ story brick. Put your reasoning in Notes if you're unsure."},
       {k:"located_in_historic_district",l:"Historic District",t:"ynu",o:["yes","no","un"],h:"Yes or no. Usually only known for well recognized historic buildings."},
-      {k:"occupany_u",l:"Occupancy",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","museum","storage","utilities","misc","not in use"],h:"Use when the tornado hit, by the 2021 IBC chapter 3 categories. A quick search helps when the use isn't obvious."},
+      {k:"occupany_u",l:"Occupancy",t:"select",o:["assembly","business","educational","factory","high-hazard","institutional","mercantile","residential","religious","museum","storage","utilities","misc","not in use"],h:"Use when the tornado hit, by the 2021 IBC chapter 3 categories. A quick search helps when the use isn't obvious."},
       {k:"number_stories",l:"Stories",t:"number",h:"Count from Street View. Use 1.5 or 2.5 when the front and back differ (for example 2 in back and 1 in front)."},{k:"year_built_u",l:"Year Built",t:"number",h:"Check online sources, a date on the building in Street View, or Zillow (Home Details, then Facts and Features). Use the first year if you find a range, and un if you can't find it."},
       {k:"building_area_m2",l:"Area (m²)",t:"number",h:"Footprint area in m², traced around the corners with the Polygon tab of Google Earth Pro's Ruler tool."},{k:"building_urban_setting",l:"Urban Setting",t:"select",o:["isolated","row_end","row_middle"],h:"Isolated if it stands alone. row_middle or row_end if it's joined to its neighbors, like a downtown row building."},
       {k:"building_position_on_street",l:"Street Position",t:"select",o:["recessed","right_on_street"],h:"Recessed if there's a yard or setback in front, right_on_street if the front wall is at the sidewalk."},
@@ -624,8 +628,8 @@ const S = {
       {k:"building_rigid",l:"Rigid",t:"text"},
     ]},
     {id:"structural",t:"Structural Systems",d:"Uncertainty: 1 = certain, 2 = probable, 3 = guess.",f:[
-      {k:"roof_shape_u",l:"Roof Shape",t:"select",o:["complex","flat","gable","gable-hip_combo","gambrel","hip","mansard","monoslope","un","ot"],h:"'complex' if multiple types; detail in notes"},
-      {k:"roof_slope_u",l:"Roof Slope (°)",t:"select",o:["0","30","45","60"],h:"Roof pitch in degrees. If there are several slopes, use the one covering most of the building."},
+      {k:"roof_shape_u",l:"Roof Shape",t:"select",o:["complex","complex_gable","complex_hip","cross_gable","flat","gable","gable-hip_combo","gambrel","hip","mansard","monoslope","un","ot"],h:"Use complex_gable or complex_hip when one shape dominates, complex if it's a mix, and add detail in notes."},
+      {k:"roof_slope_u",l:"Roof Slope (°)",t:"number",h:"Roof pitch in degrees, 0 for a flat roof. If there are several slopes, use the one covering most of the building."},
       {k:"construction_type_u",l:"Construction Type",t:"select",o:["wooden_light_frame","wood_frame","wooden_ot","steel_light_frame","steel_frame_masonry_shear_wall","steel_frame","concrete_un","rf_masonry","masonry_un","un","ot"],h:"Judge from the decade it was built, what the walls are made of and how it's used. Historic brick buildings will almost always be masonry_un."},
       {k:"construction_type_u_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_wall",l:"MWFRS Wall",t:"select",o:["wall_diaphragm_wood","wall_diaphragm_masonry","wall_diaphragm_steel","wall_diaphragm_concrete","x_bracing_wall","moment_frame","not_applicable","un","ot"],h:"Main wind force resisting system for the walls, meaning what the walls are made of that resists the wind. Best approximation is fine."},
       {k:"mwfrs_u_wall_unc",l:"Certainty",t:"unc"},{k:"mwfrs_u_roof",l:"MWFRS Roof",t:"select",o:["roof_diaphragm_wood","roof_diaphragm_steel","roof_diaphragm_metal","roof_diaphragm_conc","un","not_applicable","ot"],h:"Main wind force resisting system for the roof, meaning what the roof is made of that resists the wind. Best approximation is fine."},
@@ -642,7 +646,7 @@ const S = {
     {id:"walls",t:"Wall Envelope",d:"Substrate, cladding, soffit.",f:[
       {k:"wall_substrate_u",l:"Substrate",t:"select",o:["wooden_sheathing_cont","wooden_sheathing_corn","wooden_planks","sheathing_insulate","foam_board","wooden_panels","wooden_un","metal_panes","not_applicable","un","ot"],h:"For historic unreinforced masonry use not_applicable, since the masonry itself acts as the substrate."},
       {k:"wall_substrate_u_unc",l:"Certainty",t:"unc"},
-      {k:"wall_cladding_u",l:"Cladding",t:"select",o:["brick_veneer","brick","brick_un","wood_plank","wood_ot","wood_un","fiber_cement_board","steel_corrugated_panel","steel_un","steel_ot","vinyl_panel","vinyl_ot","aluminum","weatherboard","stone_ot","stucco","not_applicable","un","ot"],h:"Material on the outside of the walls, like brick, stone, stucco, vinyl or wood."},
+      {k:"wall_cladding_u",l:"Cladding",t:"multi",o:["brick","stone","stucco","wood","vinyl","brick_veneer","brick_un","wood_plank","wood_ot","wood_un","fiber_cement_board","steel_corrugated_panel","steel_un","steel_ot","vinyl_panel","vinyl_ot","aluminum","weatherboard","stone_ot","not_applicable","un","ot"],h:"Material on the outside of the walls, like brick, stone, stucco, vinyl or wood. Tick every one you see."},
       {k:"wall_cladding_u_unc",l:"Certainty",t:"unc"},
       {k:"soffit_type_u",l:"Soffit Type",t:"select",o:["vinyl","metal","wood","un","not_applicable"],h:"A soffit covers the underside of the roof overhang. Check the latest imagery, since renovations change it. not_applicable if there's no soffit."},
       {k:"soffit_present_u",l:"Soffit Present",t:"yn",o:["yes","no"],h:"Whether there's a soffit at all. Some buildings are built without one."},
@@ -660,10 +664,10 @@ const S = {
       {k:"wall_fenesteration_protection_right_unc",l:"Cert.",t:"unc"},
       {k:"wall_fenesteration_protection_left",l:"Prot. Left",t:"ynu",o:["yes","no","un"],h:"Shutters or plywood on the windows before the tornado (not after). Most buildings here have none, so no."},
       {k:"wall_fenesteration_protection_left_unc",l:"Cert.",t:"unc"},
-      {k:"fenestration_protection_type_front",l:"Type Front",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
-      {k:"fenestration_protection_type_back",l:"Type Back",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
-      {k:"fenestration_protection_type_right",l:"Type Right",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
-      {k:"fenestration_protection_type_left",l:"Type Left",t:"select",o:["un","impact resistant","plywood","hurricane shutter","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
+      {k:"fenestration_protection_type_front",l:"Type Front",t:"select",o:["un","impact resistant","plywood","storm_shutters","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
+      {k:"fenestration_protection_type_back",l:"Type Back",t:"select",o:["un","impact resistant","plywood","storm_shutters","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
+      {k:"fenestration_protection_type_right",l:"Type Right",t:"select",o:["un","impact resistant","plywood","storm_shutters","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
+      {k:"fenestration_protection_type_left",l:"Type Left",t:"select",o:["un","impact resistant","plywood","storm_shutters","not_applicable"],h:"Only if there's protection. Most will be not_applicable."},
       {k:"fenestration_protection_type_unc",l:"Prot. Type Cert.",t:"unc"},
     ]},
     {id:"doors",t:"Doors & Openings",d:"Large doors (garage) and standard doors.",f:[
@@ -680,19 +684,19 @@ const S = {
       {k:"roof_system_u_unc",l:"Certainty",t:"unc"},
       {k:"r2wall_attachment_u",l:"Roof-to-Wall",t:"select",o:["nails","metal_strap","bolted_connection","welded_connection","connection_un","not_applicable","un","ot"],h:"How the roof connects to the walls. You can't see this from outside, so un."},
       {k:"r2wall_attachment_type_unc",l:"Certainty",t:"unc"},
-      {k:"roof_substrate_type_u",l:"Substrate",t:"select",o:["plywood","dimensional lumber","metal deck","concrete","none","ot","un"],h:"You can't see it, so go by when it was built and the roof system. Usually dimensional lumber."},
+      {k:"roof_substrate_type_u",l:"Substrate",t:"select",o:["plywood","dimensional_lumber","metal_deck","concrete","none","ot","un"],h:"You can't see it, so go by when it was built and the roof system. Usually dimensional lumber."},
       {k:"roof_substrate_type_u_unc",l:"Certainty",t:"unc"},
-      {k:"roof_cover_u",l:"Cover",t:"select",o:["ashphalt","corrugated_metal","standing_seam_metal","tiles_clay","tiles_concrete","slate","wooden_shingles","un","ot"],h:"What's on top of the roof, from imagery (asphalt, clay tile, metal, slate). Search pictures of each if you're unsure."},
+      {k:"roof_cover_u",l:"Cover",t:"select",o:["asphalt","clay_shingles","asbestos_shingles","corrugated_metal","standing_seam_metal","tiles_concrete","slate","wooden_shingles","un","ot"],h:"What's on top of the roof, from imagery (asphalt, clay tile, metal, slate). Search pictures of each if you're unsure."},
       {k:"overhang_length_u",l:"Overhang (m)",t:"number",h:"Roof overhang in m, best guess from imagery. 0 if none."},{k:"parapet_height_m",l:"Parapet (m)",t:"number",h:"Parapet height in m, best guess. Parapets are usually at least about 0.75 m. 0 if none."},
       {k:"secondary_water_barrier_u",l:"2nd Water Barrier",t:"text"},
     ]},
     {id:"retro",t:"Retrofit & Status",d:"Retrofits, hazards, overall status.",f:[
       {k:"retrofit_present_u",l:"Retrofit Present",t:"ynu",o:["yes","no","un"],h:"Yes or no. Scroll through Google Earth Pro's historical imagery to spot additions."},
-      {k:"retrofit_year_u",l:"Year",t:"number",h:"Year of any major renovation, addition or structural retrofit. Separate several years with commas."},{k:"retrofit_type_u",l:"Type",t:"select",o:["building_addition","reinforced_masonry","steel_bracing","un","ot"],h:"Kind of retrofit, like a building addition or structural restoration."},
+      {k:"retrofit_year_u",l:"Year",t:"number",h:"Year of any major renovation, addition or structural retrofit. Separate several years with commas."},{k:"retrofit_type_u",l:"Type",t:"select",o:["not_applicable","building_addition","structural_restoration","reinforced_masonry","steel_bracing","un","ot"],h:"Kind of retrofit, like a building addition or structural restoration."},
       {k:"retrofit_type_unc_u",l:"Certainty",t:"unc"},
       {k:"retrofit_type_1_u",l:"Retrofit 1",t:"text"},{k:"reotrofit_2_u",l:"Retrofit 2",t:"text"},
-      {k:"hazards_present_u",l:"Hazards",t:"select",o:["flood","rain","wind","surge","tree-fall","wind-borne_debris","un"],h:"From Fulcrum's Hazards Present if the building is there. Otherwise assume wind, plus tree fall if aerial views show fallen trees nearby."},
-      {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor_damage","moderate_damage","major_damage","destroyed"],h:"From Fulcrum's Wind Damage Rating, or your best guess from imagery if the building isn't in Fulcrum."},
+      {k:"hazards_present_u",l:"Hazards",t:"multi",o:["wind","tree_fall","wind-borne_debris","rain","flood","surge","un"],h:"From Fulcrum's Hazards Present if the building is there. Otherwise assume wind, plus tree fall if aerial views show fallen trees nearby."},
+      {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor","moderate","severe","destroyed","unknown"],h:"From Fulcrum's Wind Damage Rating, or your best guess from imagery if the building isn't in Fulcrum."},
     ]},
     {id:"dmg",t:"Damage Assessment",d:"Component ratings (0–5) and damage % by elevation.",f:[
       {k:"wind_damage_rating_u",l:"Wind Damage",t:"rtg",h:"Leave blank for now. Record the damage in Overall Status instead."},{k:"damage_indicator_u",l:"Damage Indicator",t:"rtg",h:"Leave blank. The NWS damage indicator for this building, if NWS surveyed it, is in the NWS box at the top of this section."},
@@ -728,7 +732,7 @@ const S = {
       {k:"ip_failure_e",l:"IP E",t:"text"},{k:"ip_failure_w",l:"IP W",t:"text"},
       {k:"surge_damage_rating_u",l:"Surge Rating",t:"text"},{k:"rainwater_ingress_damage_rating_u",l:"Rain Ingress",t:"text"},
       {k:"wall_cladding_damage_level_u",l:"Clad. Level",t:"text"},{k:" stories_with_damage_u",l:"Stories w/ Dmg",t:"number"},
-      {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},{k:"damage_status",l:"Status",t:"select",o:["undamaged","minor_damage","moderate_damage","major_damage","destroyed"],h:"Same as Overall Status (undamaged, minor, moderate, major, destroyed)."},
+      {k:"per_building_footprint_eroded_u",l:"Footprint Eroded",t:"text"},
     ]},
     {id:"photos",t:"Photos",d:"Links to overall and detailed photos.",f:[
       {k:"overall_photos_front",l:"Overall Front",t:"text"},{k:"overall_photos_back",l:"Overall Back",t:"text"},
@@ -739,9 +743,9 @@ const S = {
     {id:"heritage",t:"Heritage & Timeline",d:"Historic designations and pre/post-event status.",f:[
       {k:"national_register_listing_year",l:"NRHP Year",t:"number",h:"Year it was listed on the National Register, if it is."},
       {k:"existed_during_tornado",l:"Existed During",t:"ynu",o:["yes","no","un"],h:"Yes or no."},
-      {k:"buidling_use_before_tornado",l:"Use Before",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Use before the tornado, with the same options as Occupancy (its current use, not the original historic one)."},
-      {k:"buidling_use_after_tornado",l:"Use After",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Use after the tornado, with the same options as Occupancy."},
-      {k:"buidling_use_plan_after_tornado",l:"Planned Use",t:"select",o:["assembly","buisness","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Planned use after the tornado. Usually the same as the use after."},
+      {k:"buidling_use_before_tornado",l:"Use Before",t:"select",o:["assembly","business","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Use before the tornado, with the same options as Occupancy (its current use, not the original historic one)."},
+      {k:"buidling_use_after_tornado",l:"Use After",t:"select",o:["assembly","business","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Use after the tornado, with the same options as Occupancy."},
+      {k:"buidling_use_plan_after_tornado",l:"Planned Use",t:"select",o:["assembly","business","educational","factory","high-hazard","institutional","mercantile","residential","storage","utilities","religious","military","museum","not in use","unknown","demolished"],h:"Planned use after the tornado. Usually the same as the use after."},
       {k:"demolishing_year",l:"Demolition Year",t:"number",h:"Year it was demolished, or not_applicable."},
       {k:"single_unit",l:"Single Unit",t:"yn",o:["yes","no"],h:"One use only, like a house or an office building. Pick single or multiple, not both."},{k:"multiple_unit",l:"Multiple Unit",t:"yn",o:["yes","no"],h:"Several uses or units in one building, like apartments, condos or offices with apartments upstairs. Pick single or multiple, not both."},
       {k:"world_heritage_property",l:"World Heritage",t:"yn",o:["yes","no"],h:"From the listing (true or false) if it's on the National Register."},{k:"hague_convention",l:"Hague Conv.",t:"yn",o:["yes","no"],h:"From the listing (true or false) if it's on the National Register."},
@@ -788,10 +792,10 @@ const S = {
       {k:"prop_mountain",l:"Mountain",t:"cb",g:"pt"},{k:"parking / storage facility",l:"Parking/Storage",t:"cb",g:"pt"},
       {k:"river catchment system",l:"River Catchment",t:"cb",g:"pt"},{k:"sea",l:"Sea",t:"cb",g:"pt"},
       {k:"underground facility",l:"Underground",t:"cb",g:"pt"},{k:"zoological park",l:"Zoo",t:"cb",g:"pt"},
-      {k:"prop_val_evidential",l:"Evidential",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How much history the building itself shows or holds that could be used."},
-      {k:"prop_val_historical",l:"Historical",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How important it is in a historical context."},
-      {k:"prop_val_aesthetic",l:"Aesthetic",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How aesthetic it is and whether it's kept up."},
-      {k:"prop_val_communal",l:"Communal",t:"select",o:["no value","some","considerable","exceptional"],g:"val",h:"How important it is to the local community."},
+      {k:"prop_val_evidential",l:"Evidential",t:"select",o:["no value","limited","some","considerable","exceptional"],g:"val",h:"How much history the building itself shows or holds that could be used."},
+      {k:"prop_val_historical",l:"Historical",t:"select",o:["no value","limited","some","considerable","exceptional"],g:"val",h:"How important it is in a historical context."},
+      {k:"prop_val_aesthetic",l:"Aesthetic",t:"select",o:["no value","limited","some","considerable","exceptional"],g:"val",h:"How aesthetic it is and whether it's kept up."},
+      {k:"prop_val_communal",l:"Communal",t:"select",o:["no value","limited","some","considerable","exceptional"],g:"val",h:"How important it is to the local community."},
       {k:"owner_individual",l:"Individual",t:"cb",g:"own"},{k:"owner_business",l:"Business",t:"cb",g:"own"},
       {k:"owner_government",l:"Government",t:"cb",g:"own"},{k:"owner_ngo",l:"NGO",t:"cb",g:"own"},
       {k:"owner_religious ",l:"Religious",t:"cb",g:"own"},{k:"owner_unknown",l:"Unknown",t:"cb",g:"own"},
@@ -1085,7 +1089,9 @@ function schedSave() {
   }, 800);
 }
 
-function setF(k, v) { fd[k] = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
+// damage_status (heritage timeline block) asked the same thing as Overall Status, so the form
+// no longer shows it and keeps the workbook column as a copy of status_u.
+function setF(k, v) { fd[k] = v; if (k==="status_u") fd.damage_status = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
 
 // ── Core fields view ────────────────────────────────────────────────
 // The short view hides fields the fall 2026 crew rarely fills (checked against
@@ -1095,7 +1101,7 @@ const CORE_RULES = {
   photos: [],
   dmg: ["wind_damage_rating_u","damage_indicator_u","degree_of_damage_u","wind_damage_details_u",
         "roof_structure_damage_u_per","roof_substrate_damage_per","wall_structure_damage_u",
-        "wall_substrate_damage_u","wall_cladding_damage_level_u","damage_status"],
+        "wall_substrate_damage_u","wall_cladding_damage_level_u"],
   heritage: ["single_unit","multiple_unit"],
   prop: ["prop_residential facility","owner_individual","owner_business","owner_government","owner_ngo","owner_religious","owner_unknown"]
 };
@@ -1649,6 +1655,12 @@ function renderIn(f, val) {
         ? `<option value="${e(cur)}" selected>${e(cur)} (as in spreadsheet)</option>` : "";
       return `<select ${dk}><option value="">--</option>${extra}${(f.o||[]).map(o => `<option value="${e(o)}" ${cur===String(o)?"selected":""}>${e(o)}</option>`).join("")}</select>`;
     }
+    case "multi": {
+      // Several choices, saved as "brick, stone". Values not in the list still show and stay ticked.
+      const have = String(v).split(",").map(x => x.trim()).filter(Boolean);
+      const opts = (f.o||[]).map(String), extra = have.filter(x => !opts.includes(x));
+      return `<div class="ms" ${dk}>${[...extra, ...opts].map(o => `<label class="${have.includes(o)?'on':''}"><input type="checkbox" value="${e(o)}" ${have.includes(o)?"checked":""}>${e(o)}${extra.includes(o)?" (as in spreadsheet)":""}</label>`).join("")}</div>`;
+    }
     case "ynu": case "yn":
       return `<div class="rg">${(f.o||["yes","no"]).map(c => `<label class="${String(v)===c?'on':''}" data-k="${e(f.k)}" data-v="${c}" onclick="rc(this)">${c}</label>`).join("")}</div>`;
     case "rtg":
@@ -1664,7 +1676,11 @@ function bindForm() {
   const el = document.getElementById("fscroll");
   el.querySelectorAll("input[type=text],input[type=number],textarea").forEach(x => x.onchange = () => setF(x.dataset.k, x.value));
   el.querySelectorAll("select").forEach(x => x.onchange = () => setF(x.dataset.k, x.value));
-  el.querySelectorAll("input[type=checkbox]").forEach(x => x.onchange = () => setF(x.dataset.k, x.checked?1:0));
+  el.querySelectorAll("input[type=checkbox][data-k]").forEach(x => x.onchange = () => setF(x.dataset.k, x.checked?1:0));
+  el.querySelectorAll(".ms").forEach(g => g.querySelectorAll("input").forEach(x => x.onchange = () => {
+    x.parentElement.classList.toggle("on", x.checked);
+    setF(g.dataset.k, [...g.querySelectorAll("input:checked")].map(i => i.value).join(", "));
+  }));
   const p = document.getElementById("pbtn"), n = document.getElementById("nbtn"), d = document.getElementById("dbtn");
   if (p) p.onclick = () => { curSec--; renderTabs(); renderForm(); };
   if (n) n.onclick = () => { curSec++; renderTabs(); renderForm(); };
