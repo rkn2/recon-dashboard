@@ -19,7 +19,7 @@ changes small enough for them to review.
   pull request description instead.
 - **Test copies only.** Develop against the test datasets/workbooks, never the live
   ones, unless Becca says otherwise.
-- **No student personal information** in code, commits, or test data.
+- **Student first names only.** First names on lab work are fine (like the dashboard's per-student counts). No last names, emails, PSU IDs or other personal information in code, commits, or test data.
 - **Verify in a browser** before calling a change done: serve the repo with
   `python3 -m http.server 8790` and load the page. Say what you checked.
 

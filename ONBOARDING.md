@@ -174,7 +174,7 @@ form in the browser ──> lab server on Becca's Mac mini ──> OneDrive Exce
    built from each workbook's columns and the flood data input guide.
 2. **Live dashboard.** `index.html` shows real data from the server, not the old
    copy pasted into the file.
-3. **Data quality views.** Missing fields, inconsistent names ("Sam" vs "Samantha"),
+3. **Data quality views.** Missing fields, inconsistent names ("Bri" vs "Brian"),
    duplicate addresses, values that aren't allowed codes, progress per student.
 4. **A one-page guide** for students entering data.
 
