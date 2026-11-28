@@ -898,6 +898,27 @@ const EVENTS = {
       ["After Photos (Flood REU Team)", "After-flood photos, one folder per address, plus aerial views", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2024_marshall_helene/ref_photo_links/address/after"],
       ["Before Photos (Flood REU Team)", "Before photos, one folder per address", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2024_marshall_helene/ref_photo_links/address/before"],
       ["Fulcrum", "Field survey photos and damage notes", "https://web.fulcrumapp.com/users/sign_in"]
+    ] },
+  montpelier: { dataset: "montpelier", name: "Montpelier, VT 2023 flood", title: "Flood Damage DB", sub: "Montpelier, VT 2023 (July flood)",
+    hazard: "flood", store: "recon_montpelier_buildings", addr: "complete address", who: "Name", center: [44.2600, -72.5760],
+    dt360: false, exportName: "Montpelier_Flood_DataInput_export.csv",
+    mirrorStatus: false,   // damage_status is a formula (=CX row) in this workbook; don't overwrite it
+    defaults: { town: "Montpelier, VT", hazards_present_u: "flood" },
+    archetypes: ["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13","F14","F15"],
+    statusTip: "Flood damage state from the guide's table (hover each choice). Use the flood height on the Flood Exposure tab, the photos and the videos in Links / Files.",
+    guide: "https://pennstateoffice365.sharepoint.com/sites/FloodREU/_layouts/15/Doc.aspx?sourcedoc=%7B9772D929-1D81-4DE6-BFA7-C35ED973DCE5%7D&file=flood_data_input_guide_Carol.docx&action=default&mobileredirect=true",
+    links: [
+      ["Data Entry Guide (Flood REU Team)", "How to fill in each column, with the flood damage state table", "guide"],
+      ["Videos and Data Sources (Flood REU Team)", "Flood videos and the USGS high-water data, for Overall Status", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2023_montpelier_noName/dataSources"],
+      ["Image Gallery (Flood REU Team)", "Photos of downtown during and after the flood", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2023_montpelier_noName/Image%20gallery"],
+      ["3D Point Cloud (Hazmapper)", "Lidar point cloud of downtown Montpelier", "https://hazmapper.tacc.utexas.edu/hazmapper/project-public/a0d3b385-74bc-4d1f-9e55-ec385fc1900e/"],
+      ["Street-Level Damage (Mapillary)", "Street-level photos after the flood", "https://www.mapillary.com/app/?lat=44.23008410142927&lng=-72.5319675762509&z=12.660297790211569"],
+      ["Study Zone Map", "The Montpelier study area", "https://www.google.com/maps/d/viewer?mid=1wTG_xRYHYRtS3wgUw0-jmxyHfpOvLgg&ll=44.26134341627735%2C-72.58003300042787&z=16"],
+      ["FEMA Flood Map (NFHL viewer)", "Flood zone for the FEMA_floodzone column", "https://hazards-fema.maps.arcgis.com/apps/webappviewer/index.html?id=8b0adb51996444d4879338b5529aa9cd"],
+      ["After Photos (Flood REU Team)", "After-flood photos, one folder per address", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2023_montpelier_noName/ref_photo_links/address/after"],
+      ["Before Photos (Flood REU Team)", "Before photos, one folder per address", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2023_montpelier_noName/ref_photo_links/address/before"],
+      ["Montpelier Folder (Flood REU Team)", "Workbook, data sources and photos", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2023_montpelier_noName"],
+      ["Fulcrum", "Field survey photos and damage notes", "https://web.fulcrumapp.com/users/sign_in"]
     ] }
 };
 const EVENT = (function() {
@@ -906,6 +927,7 @@ const EVENT = (function() {
 })();
 const EV = EVENTS[EVENT];
 const ADDR = EV.addr;   // workbook column holding the street address
+const WHO = EV.who || "completed_by";   // workbook column holding the student's name
 if (EV.defaults) S.defaults = Object.assign({}, EV.defaults);
 if (EV.hazard !== "tornado") {
   S.sections.forEach(function(sec) {
@@ -1057,7 +1079,17 @@ function saveOne(id) {
   const req = b._row ? api("PATCH", "/rows/" + b._row, { hash: b._hash, fields: fields })
                      : api("POST", "/rows", { fields: fields });
   return req.then(function(d) {
-    const r = d.row, wasNew = !b._row;
+    const r = d.row, wasNew = !b._row, before = b._saved || {};
+    // Take the workbook's value for any field the student didn't change since the last save.
+    // Formula cells (Montpelier's damage_status) change on their own, and sending the stale
+    // value back would overwrite the formula.
+    const same = (x, y) => String(x == null ? "" : x) === String(y == null ? "" : y);
+    for (const k in r) {
+      if (k[0] === "_" || !same(b[k], before[k])) continue;
+      b[k] = r[k];
+      if (curId === b._id && same(fd[k], before[k])) fd[k] = r[k];
+    }
+    for (const k in before) if (!(k in r) && same(b[k], before[k])) { delete b[k]; if (curId === b._id) delete fd[k]; }
     b._row = r._row; b._hash = r._hash; b._saved = {};
     for (const k in r) if (k[0] !== "_") b._saved[k] = r[k];
     if (wasNew) {
@@ -1103,12 +1135,12 @@ try { const s0 = JSON.parse(localStorage.getItem("tornado_list_filters") || "{}"
 function saveLF() { try { localStorage.setItem("tornado_list_filters", JSON.stringify({ mine: LF.mine, todo: LF.todo })); } catch(e) {} }
 function isMine(b) {
   const me = document.getElementById("uname").value.trim().toLowerCase();
-  const by = String(b.completed_by || "").trim().toLowerCase();
+  const by = String(b[WHO] || "").trim().toLowerCase();
   if (!me || !by) return false;
   // "Nymir" and "Nymire" match (one letter off the end); "Bri" (summer 2025) and "Brian" don't
   return me === by || (Math.abs(me.length - by.length) === 1 && (me.startsWith(by) || by.startsWith(me)));
 }
-function isDone(b) { return !!(b.status_u || b.damage_status); }
+function isDone(b) { return !!String(b.status_u || "").trim(); }
 function shortLbl(b) { return String(lbl(b)).split(",")[0]; }
 function listed() {
   const q = LF.q.trim().toLowerCase();
@@ -1131,7 +1163,7 @@ function renderList() {
     return;
   }
   el.innerHTML = shown.map(b => {
-    const st = b.status_u || b.damage_status || "";
+    const st = isDone(b) ? "x" : "";
     const dc = st ? "hi" : "lo";
     return `<div class="bld-item ${b._id===curId?'active':''}" data-id="${b._id}">
       <span class="n">${e(b.sno)}</span><span class="a" title="${e(lbl(b))}">${e(shortLbl(b))}</span><span class="dot ${dc}"></span><button class="del-x" data-did="${b._id}" title="Delete">&times;</button></div>`;
@@ -1168,7 +1200,7 @@ function showLanding() {
 function addBuilding() {
   const sno = blds.length + 1;
   const nm = document.getElementById("uname").value.trim();
-  const b = { _id: "new_" + Date.now(), sno: "new", completed_by: nm, ...S.defaults, _dirty: true };
+  const b = { _id: "new_" + Date.now(), sno: "new", [WHO]: nm, ...S.defaults, _dirty: true };
   blds.push(b); cacheLocal(); queueSave(b._id); selBld(b._id);
 }
 
@@ -1197,7 +1229,7 @@ function schedSave() {
 
 // damage_status (heritage timeline block) asked the same thing as Overall Status, so the form
 // no longer shows it and keeps the workbook column as a copy of status_u.
-function setF(k, v) { fd[k] = v; if (k==="status_u") fd.damage_status = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
+function setF(k, v) { fd[k] = v; if (k==="status_u" && EV.mirrorStatus !== false) fd.damage_status = v; schedSave(); if (k==="latitude"||k==="longitude") renderMap(); }
 
 // ── Core fields view ────────────────────────────────────────────────
 // The short view hides fields the fall 2026 crew rarely fills (checked against
@@ -1910,12 +1942,12 @@ function initLandingMap(){
 
   blds.forEach(function(b){
     if(!b.latitude||!b.longitude) return;
-    var st = b.status_u || b.damage_status || "";
+    var st = isDone(b) ? "x" : "";
     var color = st ? "#3a7a4f" : "#d4a04a";
     var c=L.circleMarker([b.latitude,b.longitude],{
       radius:5, fillColor:color, color:"#fff", weight:1, fillOpacity:.85
     }).addTo(landingMap);
-    c.bindTooltip((b[ADDR]||'No address')+'\n'+(b.completed_by?'By: '+b.completed_by:''),{direction:'top',offset:[0,-8]});
+    c.bindTooltip((b[ADDR]||'No address')+'\n'+(b[WHO]?'By: '+b[WHO]:''),{direction:'top',offset:[0,-8]});
     c.on("click",function(ev){
       L.DomEvent.stopPropagation(ev);
       selBld(b._id);
@@ -1929,7 +1961,7 @@ function initLandingMap(){
     var lon=Math.round(ev.latlng.lng*1e6)/1e6;
     if(confirm("Start new building at "+lat+", "+lon+"?")){
       var nm=document.getElementById("uname").value.trim();
-      var b={_id:"new_"+Date.now(),sno:"new",completed_by:nm,...S.defaults,latitude:lat,longitude:lon,_dirty:true};
+      var b={_id:"new_"+Date.now(),sno:"new",[WHO]:nm,...S.defaults,latitude:lat,longitude:lon,_dirty:true};
       blds.push(b);cacheLocal();queueSave(b._id);selBld(b._id);
       closeSidebar();updateMobTitle();
     }
