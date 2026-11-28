@@ -733,7 +733,7 @@ const S = {
       {k:"retrofit_year",l:"Retrofit Year",t:"text",h:"Year of any major renovation, addition or structural retrofit."},
       {k:"retrofit_type_1_u",l:"Retrofit 1",t:"text"},{k:"reotrofit_2_u",l:"Retrofit 2",t:"text"},
       {k:"hazards_present_u",l:"Hazards",t:"multi",o:["wind","tree_fall","wind-borne_debris","rain","flood","surge","un"],h:"From Fulcrum's Hazards Present if the building is there. Otherwise assume wind, plus tree fall if aerial views show fallen trees nearby."},
-      {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor","moderate","severe","destroyed","unknown"],h:"From Fulcrum's Wind Damage Rating, or your best guess from imagery if the building isn't in Fulcrum."},
+      {k:"status_u",l:"Overall Status",t:"select",o:["undamaged","minor","moderate","severe","destroyed","unknown"],h:"Your judgment from what you can see. Use the NWS box at the top of Damage Assessment, the 360° after tab and Street View, and Fulcrum's Wind Damage Rating if the building is in Fulcrum. Pick unknown if nothing shows the building, and say so in the Notes."},
     ]},
     {id:"dmg",t:"Damage Assessment",d:"Component ratings (0–5) and damage % by elevation.",f:[
       {k:"wind_damage_rating_u",l:"Wind Damage",t:"rtg",h:"Leave blank for now. Record the damage in Overall Status instead."},{k:"damage_indicator_u",l:"Damage Indicator",t:"rtg",h:"Leave blank. The NWS damage indicator for this building, if NWS surveyed it, is in the NWS box at the top of this section."},
@@ -1342,7 +1342,10 @@ function searchAddr() {
   if (!q) return;
   var btn = document.querySelector(".ref-search button");
   btn.textContent = "...";
-  fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(q) + "&format=json&limit=1", {
+  // Only look near this event, so a short or misspelled address can't land in another state or country.
+  var c = EV.center, d = 0.15;
+  var vb = [c[1] - d, c[0] + d, c[1] + d, c[0] - d].join(",");
+  fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(q) + "&format=json&limit=1&bounded=1&viewbox=" + vb, {
     headers: {"Accept": "application/json"}
   })
   .then(function(r) { return r.json(); })
@@ -1357,12 +1360,13 @@ function searchAddr() {
       setF("longitude", lon);
       updateMapUI();
       renderForm();
-      if (data[0].display_name) {
+      // The search only moves the pin. It fills in the address only for a building that has none yet.
+      if (data[0].display_name && !String(fd[ADDR] || "").trim()) {
         var shortAddr = data[0].display_name.split(",").slice(0, 3).join(",");
         setF(ADDR, shortAddr);
       }
     } else {
-      alert("Address not found. Try a more specific search.");
+      alert("Couldn't find that address in this event's area. Try the street number and name, or drag the pin onto the building instead.");
     }
   })
   .catch(function() { btn.textContent = "Go"; alert("Search failed. Check your connection."); });
