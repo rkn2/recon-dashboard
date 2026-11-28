@@ -142,6 +142,9 @@ class Dataset:
         self.sheet = cfg.get("sheet", "BuidlingAttributes")
         self.header_row = int(cfg.get("header_row", 1))
         self.photos = cfg.get("photos")  # OneDrive folder of per-building photo folders (optional)
+        # More read-only roots laid out the same way (Marshall keeps "after" apart from "before").
+        # The Building Photos tab merges them; saves still go to `photos`.
+        self.photos_more = list(cfg.get("photos_more", []))
         # Optional driveId of a Team's document library; paths are then relative to that library's root.
         self.drive = f"/drives/{cfg['drive']}" if cfg.get("drive") else "/me/drive"
         self._photo_folders = None       # (time, [names])
@@ -328,31 +331,40 @@ def photo_folders(ds):
         raise BadRequest("no photo folder for this dataset")
     if ds._photo_folders and time.time() - ds._photo_folders[0] < 600:
         return ds._photo_folders[1]
-    root = graph("GET", f"{ds.drive}/root:/{quote(ds.photos)}?$select=id,webUrl")
-    names, url = [], f"{ds.drive}/items/{root['id']}/children?$select=name,folder&$top=999"
-    while url:
-        page = graph("GET", url)
-        names += [c["name"] for c in page["value"] if "folder" in c]
-        nxt = page.get("@odata.nextLink")
-        url = nxt[len(GRAPH):] if nxt else None
-    ds._photo_folders = (time.time(), {"folders": names, "webUrl": root["webUrl"]})
+    roots = []
+    for path in [ds.photos] + ds.photos_more:
+        root = graph("GET", f"{ds.drive}/root:/{quote(path)}?$select=id,webUrl")
+        names, url = [], f"{ds.drive}/items/{root['id']}/children?$select=name,folder&$top=999"
+        while url:
+            page = graph("GET", url)
+            names += [c["name"] for c in page["value"] if "folder" in c]
+            nxt = page.get("@odata.nextLink")
+            url = nxt[len(GRAPH):] if nxt else None
+        roots.append({"path": path, "webUrl": root["webUrl"], "folders": names})
+    merged = list(dict.fromkeys(n for r in roots for n in r["folders"]))
+    ds._photo_folders = (time.time(), {"folders": merged, "webUrl": roots[0]["webUrl"], "_roots": roots})
     return ds._photo_folders[1]
 
 
 def photos_in(ds, folder):
     """Photos in one building folder, with short-lived thumbnail links."""
-    if folder not in photo_folders(ds)["folders"]:
+    pf = photo_folders(ds)
+    if folder not in pf["folders"]:
         raise BadRequest("unknown photo folder")
-    it = graph("GET", f"{ds.drive}/root:/{quote(ds.photos + '/' + folder)}:/children"
-                      "?$select=name,webUrl,file&$expand=thumbnails&$top=200")
-    out = []
-    for f in it["value"]:
-        if "file" not in f:
+    out, folder_url = [], None
+    for r in pf["_roots"]:
+        if folder not in r["folders"]:
             continue
-        th = (f.get("thumbnails") or [{}])[0]
-        out.append({"file": f["name"], "web": f["webUrl"],
-                    "thumb": (th.get("medium") or {}).get("url"), "large": (th.get("large") or {}).get("url")})
-    folder_url = photo_folders(ds)["webUrl"] + "/" + quote(folder)
+        it = graph("GET", f"{ds.drive}/root:/{quote(r['path'] + '/' + folder)}:/children"
+                          "?$select=name,webUrl,file&$expand=thumbnails&$top=200")
+        for f in it["value"]:
+            if "file" not in f:
+                continue
+            th = (f.get("thumbnails") or [{}])[0]
+            when = r["path"].rstrip("/").rsplit("/", 1)[-1].lower()  # root named before/after tags its photos
+            out.append({"file": f["name"], "web": f["webUrl"], "when": when if when in ("before", "after") else None,
+                        "thumb": (th.get("medium") or {}).get("url"), "large": (th.get("large") or {}).get("url")})
+        folder_url = folder_url or r["webUrl"] + "/" + quote(folder)
     return {"folder": folder, "webUrl": folder_url, "photos": out}
 
 
@@ -796,7 +808,8 @@ class Handler(BaseHTTPRequestHandler):
                     raise BadRequest("lat and lon required")
                 return self.send(200, dt360_nearest(ds, lat, lon))
             if rest == ["photo-folders"]:
-                return self.send(200, photo_folders(ds))
+                pf = photo_folders(ds)
+                return self.send(200, {"folders": pf["folders"], "webUrl": pf["webUrl"]})
             if rest == ["photos"]:
                 q = parse_qs(urlparse(self.path).query).get("folder", [""])[0]
                 return self.send(200, photos_in(ds, q))
