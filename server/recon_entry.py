@@ -260,7 +260,7 @@ class Dataset:
             self.wb("PATCH", f"{self.ws_url()}/range(address='{a}{rownum}:{b}{rownum}')",
                     json={"values": [[new[i] for i in run]]})
 
-    def update(self, rownum, expected_hash, fields, who):
+    def update(self, rownum, expected_hash, fields, who, pending_since=None):
         with self.lock:
             headers, _ = self.load(fresh=True)
             if rownum <= self.header_row:
@@ -275,11 +275,14 @@ class Dataset:
             if changes:
                 self.write_cells(rownum, current, new)
                 current = self.read_row(headers, rownum)  # what Excel actually stored
-                audit({"dataset": self.key, "op": "update", "row": rownum, "who": who, "changes": changes})
+                rec = {"dataset": self.key, "op": "update", "row": rownum, "who": who, "changes": changes}
+                if pending_since:
+                    rec["pending_since"] = str(pending_since)[:40]   # edit sat unsaved in the student's browser
+                audit(rec)
             self.invalidate()
             return 200, {"row": self.row_dict(headers, rownum, current), "changed": len(changes)}
 
-    def append(self, fields, who):
+    def append(self, fields, who, pending_since=None):
         with self.lock:
             headers, rows = self.load(fresh=True)
             last_used = max([n for n, v in rows if any(str(x).strip() for x in v)] or [self.header_row])
@@ -291,7 +294,10 @@ class Dataset:
             changes = self._diff(headers, current, new)
             self.write_cells(rownum, current, new)
             stored = self.read_row(headers, rownum)
-            audit({"dataset": self.key, "op": "append", "row": rownum, "who": who, "changes": changes})
+            rec = {"dataset": self.key, "op": "append", "row": rownum, "who": who, "changes": changes}
+            if pending_since:
+                rec["pending_since"] = str(pending_since)[:40]
+            audit(rec)
             self.invalidate()
             return 201, {"row": self.row_dict(headers, rownum, stored)}
 
@@ -830,7 +836,7 @@ class Handler(BaseHTTPRequestHandler):
             if ds is None or rest != ["rows"]:
                 return self.send(404, {"error": "not_found"})
             b = self.body()
-            code, out = ds.append(b.get("fields", {}), self.headers.get("X-Entered-By", ""))
+            code, out = ds.append(b.get("fields", {}), self.headers.get("X-Entered-By", ""), b.get("pending_since"))
             self.send(code, out)
         self.handle_safely(go)
 
@@ -844,7 +850,7 @@ class Handler(BaseHTTPRequestHandler):
             b = self.body()
             if not b.get("hash"):
                 raise BadRequest("missing hash")
-            code, out = ds.update(int(rest[1]), b["hash"], b.get("fields", {}), self.headers.get("X-Entered-By", ""))
+            code, out = ds.update(int(rest[1]), b["hash"], b.get("fields", {}), self.headers.get("X-Entered-By", ""), b.get("pending_since"))
             self.send(code, out)
         self.handle_safely(go)
 

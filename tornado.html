@@ -411,6 +411,9 @@ select {
 }
 
 /* Save bar */
+#unsaved-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 3000; background: #b3261e; color: #fff;
+  font: 600 14px/1.4 system-ui, sans-serif; padding: 10px 16px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+#unsaved-banner[hidden] { display: none; }
 #sbar {
   padding: 3px 14px; font-size: 10.5px; color: var(--text-muted);
   text-align: right; flex-shrink: 0; background: var(--surface);
@@ -593,6 +596,7 @@ select {
           <nav id="tabs"></nav>
           <div id="fscroll"></div>
           <div id="sbar"></div>
+          <div id="unsaved-banner" role="alert" hidden></div>
         </div>
       </div>
     </div>
@@ -954,11 +958,56 @@ let blds = [], curId = null, curSec = 0, fd = {};
 let saveT = null;
 let cols = null;            // column names in the workbook, from /schema
 
+// The full building list is only a convenience cache (St. Louis's is ~13 MB, over the browser's
+// ~5 MB limit, so it often can't be stored). Unsaved edits go in their own small key so they
+// survive closing the page even when the full list doesn't fit.
+const PENDING_KEY = STORE_KEY + "_pending";
+let pendingStoreFailed = false;
 function loadLocal() {
   try { blds = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch(e) { blds = []; }
+  let pend = [];
+  try { pend = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); } catch(e) { pend = []; }
+  pend.forEach(function(p) {
+    const b = blds.find(function(x) { return x._id === p._id; });
+    if (b) { Object.assign(b, p.f); b._dirty = true; b._unsavedSince = p.since || "earlier visit"; }
+    else blds.push(Object.assign({ _id: p._id, _row: p._row, _hash: p._hash, sno: p.sno, _saved: {} }, p.f,
+                                 { _dirty: true, _unsavedSince: p.since || "earlier visit" }));
+  });
 }
 function cacheLocal() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(blds)); } catch(e) {}
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(blds)); }
+  catch(e) { try { localStorage.removeItem(STORE_KEY); } catch(e2) {} }   // too big; the server has it
+  const pend = blds.filter(function(b) { return b._dirty; }).map(function(b) {
+    return { _id: b._id, _row: b._row, _hash: b._hash, sno: b.sno, since: b._unsavedSince, f: b._row ? diffFields(b) : stripLocal(b) };
+  });
+  try {
+    if (pend.length) localStorage.setItem(PENDING_KEY, JSON.stringify(pend)); else localStorage.removeItem(PENDING_KEY);
+    pendingStoreFailed = false;
+  } catch(e) {
+    pendingStoreFailed = true;
+    console.error("Couldn't keep unsaved edits in this browser:", e);
+  }
+  updateUnsavedBanner();
+}
+function stripLocal(b) {
+  const o = {}; for (const k in b) if (k[0] !== "_") o[k] = b[k]; return o;
+}
+// Big red bar whenever a save has failed or the server can't be reached, so students
+// don't close the page thinking their work is in the spreadsheet.
+let serverDown = false;
+function updateUnsavedBanner() {
+  const el = document.getElementById("unsaved-banner");
+  if (!el) return;
+  const n = blds.filter(function(b) { return b._dirty && b._unsavedSince; }).length;
+  if (!n && !serverDown) { el.hidden = true; return; }
+  if (n && pendingStoreFailed) {
+    el.textContent = n + (n === 1 ? " building has" : " buildings have") + " changes that are NOT in the spreadsheet, and this browser can't keep them. Please don't close this page. Leave it open until this bar goes away, or write the changes down and tell Doc Nap.";
+    el.hidden = false; return;
+  }
+  el.textContent = (serverDown ? "The form can't reach the spreadsheet right now. " : "") +
+    (n ? n + (n === 1 ? " building has" : " buildings have") + " changes that are NOT in the spreadsheet yet. " : "") +
+    "They're kept in this browser and will save when the form reconnects, so reopen the form later on this same browser and don't clear your browser data. If this bar stays, tell Doc Nap.";
+  el.hidden = false;
 }
 function loadAll() { loadLocal(); }
 function saveAll() { cacheLocal(); }
@@ -1032,12 +1081,14 @@ function fetchFromOneDrive() {
     applySchema(sc.columns);
     return api("GET", "/rows");
   }).then(function(data) {
+    serverDown = false;
     const pending = blds.filter(function(b) { return b._dirty; });
+    pending.forEach(function(p) { if (!p._unsavedSince) p._unsavedSince = "earlier visit"; });
     blds = data.rows.map(fromRow);
     // keep unsaved local edits from a previous visit
     pending.forEach(function(p) {
       const i = blds.findIndex(function(b) { return b._id === p._id; });
-      if (i >= 0) { Object.assign(blds[i], diffFields(p)); blds[i]._dirty = true; }
+      if (i >= 0) { Object.assign(blds[i], diffFields(p)); blds[i]._dirty = true; blds[i]._unsavedSince = p._unsavedSince; }
       else if (!p._row) blds.push(p);
     });
     cacheLocal();
@@ -1046,6 +1097,7 @@ function fetchFromOneDrive() {
     return true;
   }).catch(function(err) {
     setStatus("Can't reach OneDrive: " + err.message, "err");
+    serverDown = true; updateUnsavedBanner();
     return false;
   });
 }
@@ -1076,10 +1128,13 @@ function saveOne(id) {
   const fields = diffFields(b);
   if (!Object.keys(fields).length && b._row) { b._dirty = false; cacheLocal(); return; }
   setStatus("Saving to OneDrive…", "saving");
-  const req = b._row ? api("PATCH", "/rows/" + b._row, { hash: b._hash, fields: fields })
-                     : api("POST", "/rows", { fields: fields });
+  // pending_since tells the server's log that this edit sat unsaved in the browser for a while
+  const since = b._unsavedSince || undefined;
+  const req = b._row ? api("PATCH", "/rows/" + b._row, { hash: b._hash, fields: fields, pending_since: since })
+                     : api("POST", "/rows", { fields: fields, pending_since: since });
   return req.then(function(d) {
     const r = d.row, wasNew = !b._row, before = b._saved || {};
+    serverDown = false; delete b._unsavedSince;
     // Take the workbook's value for any field the student didn't change since the last save.
     // Formula cells (Montpelier's damage_status) change on their own, and sending the stale
     // value back would overwrite the formula.
@@ -1114,7 +1169,10 @@ function saveOne(id) {
       alert("Someone else changed this building in the spreadsheet since you opened it.\n\nThe form now shows their version. Please redo your last change.");
       return;
     }
-    b._dirty = true; cacheLocal();
+    b._dirty = true;
+    if (!b._unsavedSince) b._unsavedSince = new Date().toISOString();
+    if (!err.status) serverDown = true;   // no HTTP status means the request never reached the server
+    cacheLocal();
     setStatus("Not saved yet: " + err.message + " (will retry)", "err");
     setTimeout(function() { queueSave(b._id); }, 30000);
   });
