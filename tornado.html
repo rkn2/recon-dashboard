@@ -894,6 +894,9 @@ const EVENTS = {
       ["Study Zone Map", "The Marshall study area and river, for the river distances", "https://www.google.com/maps/d/viewer?mid=1uVtbNWDZn2-hwoZvSlFk9tOSy9jiap4&ll=35.79647127306477%2C-82.68450785&z=17"],
       ["FEMA Flood Map (NFHL viewer)", "Flood zone for the FEMA_floodzone column", "https://hazards-fema.maps.arcgis.com/apps/webappviewer/index.html?id=8b0adb51996444d4879338b5529aa9cd"],
       ["Marshall Folder (Flood REU Team)", "Workbook, data sources and reference photo links", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2024_marshall_helene"],
+      ["Social Media Videos & Photos (dataSourcesNC.xlsx)", "Drone footage and photos from during and after the flood, with links, for Overall Status", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/_layouts/15/Doc.aspx?sourcedoc=%7B769A96B2-9B84-46B9-8E61-3683028698CE%7D&file=dataSourcesNC.xlsx&action=default&mobileredirect=true"],
+      ["After Photos (Flood REU Team)", "After-flood photos, one folder per address, plus aerial views", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2024_marshall_helene/ref_photo_links/address/after"],
+      ["Before Photos (Flood REU Team)", "Before photos, one folder per address", "https://pennstateoffice365.sharepoint.com/sites/FloodREU/Shared%20Documents/floodREU/2024_marshall_helene/ref_photo_links/address/before"],
       ["Fulcrum", "Field survey photos and damage notes", "https://web.fulcrumapp.com/users/sign_in"]
     ] }
 };
@@ -1611,7 +1614,7 @@ function updateBuildingPhotos() {
 }
 
 function renderPhotos(el, d) {
-  var photos = d.photos.map(function(p) { var k = photoKind(p.file); k.p = p; return k; });
+  var photos = d.photos.map(function(p) { var k = photoKind(p.file); if (p.when) k.time = p.when; k.p = p; return k; });
   var views = ['Aerial', 'Front', 'Back', 'Left', 'Right', 'Street View', '360° after', 'Other'];
   var grouped = {};
   views.forEach(function(v) { grouped[v] = { before: [], after: [] }; });
